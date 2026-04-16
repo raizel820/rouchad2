@@ -22,7 +22,7 @@ import {
   Check,
   Calendar,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Address {
@@ -214,12 +214,12 @@ export function SettingsPage() {
           phone: data.phone,
           birthdate: data.birthdate,
         });
-        toast.success('Account information updated successfully!');
+        toast('Account information updated successfully!');
       } else {
-        toast.error(data.error || 'Failed to update account');
+        toast(data.error || 'Failed to update account', 'error');
       }
     } catch {
-      toast.error('Failed to update account');
+      toast('Failed to update account', 'error');
     }
     setSaving(false);
   };
@@ -228,11 +228,11 @@ export function SettingsPage() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('New passwords do not match');
+      toast('New passwords do not match', 'error');
       return;
     }
     if (passwordData.newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters');
+      toast('New password must be at least 6 characters', 'error');
       return;
     }
     setPasswordSaving(true);
@@ -248,13 +248,13 @@ export function SettingsPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success('Password changed successfully!');
+        toast('Password changed successfully!');
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       } else {
-        toast.error(data.error || 'Failed to change password');
+        toast(data.error || 'Failed to change password', 'error');
       }
     } catch {
-      toast.error('Failed to change password');
+      toast('Failed to change password', 'error');
     }
     setPasswordSaving(false);
   };
@@ -303,11 +303,11 @@ export function SettingsPage() {
         });
         const data = await res.json();
         if (res.ok) {
-          toast.success('Address updated successfully!');
+          toast('Address updated successfully!');
           await fetchAddresses();
           setShowAddressModal(false);
         } else {
-          toast.error(data.error || 'Failed to update address');
+          toast(data.error || 'Failed to update address', 'error');
         }
       } else {
         const res = await fetch('/api/addresses', {
@@ -317,15 +317,15 @@ export function SettingsPage() {
         });
         const data = await res.json();
         if (res.ok) {
-          toast.success('Address added successfully!');
+          toast('Address added successfully!');
           await fetchAddresses();
           setShowAddressModal(false);
         } else {
-          toast.error(data.error || 'Failed to add address');
+          toast(data.error || 'Failed to add address', 'error');
         }
       }
     } catch {
-      toast.error('Failed to save address');
+      toast('Failed to save address', 'error');
     }
     setAddressSaving(false);
   };
@@ -335,13 +335,13 @@ export function SettingsPage() {
       const res = await fetch(`/api/addresses/${addressId}?userId=${user.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (res.ok) {
-        toast.success('Address deleted');
+        toast('Address deleted');
         await fetchAddresses();
       } else {
-        toast.error(data.error || 'Failed to delete address');
+        toast(data.error || 'Failed to delete address', 'error');
       }
     } catch {
-      toast.error('Failed to delete address');
+      toast('Failed to delete address', 'error');
     }
   };
 
@@ -353,11 +353,11 @@ export function SettingsPage() {
         body: JSON.stringify({ userId: user.id, isDefault: true }),
       });
       if (res.ok) {
-        toast.success('Default address updated');
+        toast('Default address updated');
         await fetchAddresses();
       }
     } catch {
-      toast.error('Failed to update default address');
+      toast('Failed to update default address', 'error');
     }
   };
 
@@ -378,17 +378,17 @@ export function SettingsPage() {
     e.preventDefault();
     const lastFour = paymentForm.cardNumber.replace(/\s/g, '').slice(-4);
     if (paymentForm.cardNumber.replace(/\s/g, '').length < 4) {
-      toast.error('Please enter a valid card number');
+      toast('Please enter a valid card number', 'error');
       return;
     }
     const month = parseInt(paymentForm.expiryMonth);
     const year = parseInt(paymentForm.expiryYear);
     if (!month || month < 1 || month > 12) {
-      toast.error('Please enter a valid expiry month');
+      toast('Please enter a valid expiry month', 'error');
       return;
     }
     if (!year || year < 2024 || year > 2035) {
-      toast.error('Please enter a valid expiry year');
+      toast('Please enter a valid expiry year', 'error');
       return;
     }
 
@@ -409,14 +409,14 @@ export function SettingsPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success('Payment method added successfully!');
+        toast('Payment method added successfully!');
         await fetchPaymentMethods();
         setShowPaymentModal(false);
       } else {
-        toast.error(data.error || 'Failed to add payment method');
+        toast(data.error || 'Failed to add payment method', 'error');
       }
     } catch {
-      toast.error('Failed to add payment method');
+      toast('Failed to add payment method', 'error');
     }
     setPaymentSaving(false);
   };
@@ -426,13 +426,13 @@ export function SettingsPage() {
       const res = await fetch(`/api/payment-methods/${paymentId}?userId=${user.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (res.ok) {
-        toast.success('Payment method removed');
+        toast('Payment method removed');
         await fetchPaymentMethods();
       } else {
-        toast.error(data.error || 'Failed to remove payment method');
+        toast(data.error || 'Failed to remove payment method', 'error');
       }
     } catch {
-      toast.error('Failed to remove payment method');
+      toast('Failed to remove payment method', 'error');
     }
   };
 
@@ -444,18 +444,18 @@ export function SettingsPage() {
         body: JSON.stringify({ userId: user.id, isPreferred: true }),
       });
       if (res.ok) {
-        toast.success('Preferred payment method updated');
+        toast('Preferred payment method updated');
         await fetchPaymentMethods();
       }
     } catch {
-      toast.error('Failed to update preferred payment method');
+      toast('Failed to update preferred payment method', 'error');
     }
   };
 
   // --- Notification Handlers ---
   const handleNotificationToggle = (key: keyof typeof notifications) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
-    toast.success('Notification settings updated');
+    toast('Notification settings updated');
   };
 
   const getNotificationDescription = (key: string) => {
@@ -825,7 +825,7 @@ export function SettingsPage() {
                     <p className="text-sm text-[#8b6f63]/60">Add an extra layer of security to your account</p>
                   </div>
                   <button
-                    onClick={() => toast.info('2FA setup coming soon!')}
+                    onClick={() => toast('2FA setup coming soon!', 'info')}
                     className="px-5 py-2.5 border border-[#d4a5a5] text-[#d4a5a5] rounded-full hover:bg-[#fef5f1] transition-colors text-sm font-medium"
                   >
                     Enable 2FA
@@ -1015,7 +1015,7 @@ export function SettingsPage() {
                   </select>
                 </div>
                 <button
-                  onClick={() => toast.success('Preferences saved successfully!')}
+                  onClick={() => toast('Preferences saved successfully!')}
                   className="px-8 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors"
                 >
                   Save Preferences

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ShoppingBag, Star, Heart, Eye } from 'lucide-react';
 import { useStore, type CartItem } from '@/store/store';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
 
 interface ProductCardProps {
@@ -37,17 +37,17 @@ export function ProductCard({ product }: ProductCardProps) {
       quantity: 1,
     };
     addToCart(cartItem);
-    toast.success(`${product.name} added to cart!`);
+    toast(`${product.name} added to cart!`);
   };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isAuthenticated) {
-      toast.error('Please log in to add items to your wishlist');
+      toast('Please log in to add items to your wishlist', 'error');
       return;
     }
     toggleWishlist(product.id);
-    toast.success(isWishlisted ? `${product.name} removed from wishlist` : `${product.name} added to wishlist!`);
+    toast(isWishlisted ? `${product.name} removed from wishlist` : `${product.name} added to wishlist!`);
 
     // Call API in background
     if (isWishlisted) {

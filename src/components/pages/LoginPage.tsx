@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useStore } from '@/store/store';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
 
 export function LoginPage() {
@@ -28,7 +28,7 @@ export function LoginPage() {
           email: 'admin@rarebeauty.com',
           role: 'admin',
         });
-        toast.success('Welcome, Admin!');
+        toast('Welcome, Admin!');
         navigate('admin');
         return;
       }
@@ -40,14 +40,14 @@ export function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || 'Invalid credentials');
+        toast(data.error || 'Invalid credentials', 'error');
         return;
       }
       login(data);
-      toast.success('Welcome back!');
+      toast('Welcome back!');
       navigate('home');
     } catch {
-      toast.error('Failed to login');
+      toast('Failed to login', 'error');
     } finally {
       setIsLoading(false);
     }

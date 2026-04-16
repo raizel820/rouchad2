@@ -22,6 +22,7 @@ import { AdminDashboard } from '@/components/pages/AdminDashboard';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { QuickViewModal } from '@/components/QuickViewModal';
+import { ToastContainer } from '@/lib/toast';
 
 // Global effect to load wishlist when user logs in
 function WishlistLoader() {
@@ -147,6 +148,7 @@ export default function App() {
       <PageRenderer />
       <Footer />
       <QuickViewWrapper />
+      <ToastContainer />
     </div>
   );
 }

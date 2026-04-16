@@ -2,7 +2,7 @@
 
 import { useStore } from '@/store/store';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function CartPage() {
@@ -10,12 +10,12 @@ export function CartPage() {
 
   const handleRemove = (productId: string, productName: string) => {
     removeFromCart(productId);
-    toast.success(`${productName} removed from cart`);
+    toast(`${productName} removed from cart`);
   };
 
   const handleCheckout = () => {
     if (cartItems.length === 0) {
-      toast.error('Your cart is empty');
+      toast('Your cart is empty', 'error');
       return;
     }
     navigate('checkout');

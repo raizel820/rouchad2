@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useStore, type CartItem } from '@/store/store';
 import { Star, ShoppingBag, Heart, Share2, ArrowLeft, Send } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductDetailSkeleton } from '@/components/Skeletons';
@@ -107,12 +107,12 @@ export function ProductDetailPage() {
       };
       addToCart(cartItem);
     }
-    toast.success(`${quantity} x ${product.name} added to cart!`);
+    toast(`${quantity} x ${product.name} added to cart!`);
   };
 
   const handleWishlistToggle = async () => {
     if (!isAuthenticated || !user || !product) {
-      toast.error('Please log in to add items to your wishlist');
+      toast('Please log in to add items to your wishlist', 'error');
       return;
     }
 
@@ -120,9 +120,9 @@ export function ProductDetailPage() {
       try {
         await fetch(`/api/wishlist?productId=${product.id}&userId=${user.id}`, { method: 'DELETE' });
         toggleWishlist(product.id);
-        toast.success(`${product.name} removed from wishlist`);
+        toast(`${product.name} removed from wishlist`);
       } catch {
-        toast.error('Failed to remove from wishlist');
+        toast('Failed to remove from wishlist', 'error');
       }
     } else {
       try {
@@ -132,9 +132,9 @@ export function ProductDetailPage() {
           body: JSON.stringify({ userId: user.id, productId: product.id }),
         });
         toggleWishlist(product.id);
-        toast.success(`${product.name} added to wishlist!`);
+        toast(`${product.name} added to wishlist!`);
       } catch {
-        toast.error('Failed to add to wishlist');
+        toast('Failed to add to wishlist', 'error');
       }
     }
   };
@@ -142,7 +142,7 @@ export function ProductDetailPage() {
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !product || reviewRating === 0) {
-      toast.error('Please select a rating');
+      toast('Please select a rating', 'error');
       return;
     }
     setSubmittingReview(true);
@@ -158,7 +158,7 @@ export function ProductDetailPage() {
         }),
       });
       if (!res.ok) throw new Error('Failed to submit review');
-      toast.success('Review submitted successfully!');
+      toast('Review submitted successfully!');
       setReviewRating(0);
       setReviewComment('');
       // Refresh reviews and product data
@@ -169,7 +169,7 @@ export function ProductDetailPage() {
       setReviews(reviewsData);
       setProduct(productData);
     } catch {
-      toast.error('Failed to submit review. Please try again.');
+      toast('Failed to submit review. Please try again.', 'error');
     } finally {
       setSubmittingReview(false);
     }
@@ -282,14 +282,14 @@ export function ProductDetailPage() {
                     // User cancelled or share failed, fallback to clipboard
                     if (err instanceof Error && err.name !== 'AbortError') {
                       navigator.clipboard.writeText(window.location.href);
-                      toast.success('Product link copied to clipboard!');
+                      toast('Product link copied to clipboard!');
                     }
                   }
                 } else {
                   navigator.clipboard.writeText(window.location.href).then(() => {
-                    toast.success('Product link copied to clipboard!');
+                    toast('Product link copied to clipboard!');
                   }).catch(() => {
-                    toast.success('Share this product with friends!');
+                    toast('Share this product with friends!');
                   });
                 }
               }}

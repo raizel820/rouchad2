@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, Send, MessageCircle, Instagram, Facebook, Twitter } from 'lucide-react';
 import { useStore } from '@/store/store';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
 
 export function ContactPage() {
@@ -26,13 +26,13 @@ export function ContactPage() {
         body: JSON.stringify(formData),
       });
       if (res.ok) {
-        toast.success('Message sent successfully! We\'ll get back to you soon.');
+        toast('Message sent successfully! We\'ll get back to you soon.');
         setFormData({ name: '', email: '', subject: '', message: '' });
       } else {
-        toast.error('Failed to send message. Please try again.');
+        toast('Failed to send message. Please try again.', 'error');
       }
     } catch {
-      toast.error('Failed to send message. Please try again.');
+      toast('Failed to send message. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }

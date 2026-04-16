@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useStore } from '@/store/store';
 import { User, Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
 
 export function SignupPage() {
@@ -23,8 +23,8 @@ export function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) { toast.error('Passwords do not match'); return; }
-    if (!formData.agreeToTerms) { toast.error('Please agree to the terms'); return; }
+    if (formData.password !== formData.confirmPassword) { toast('Passwords do not match', 'error'); return; }
+    if (!formData.agreeToTerms) { toast('Please agree to the terms', 'error'); return; }
 
     setIsLoading(true);
     try {
@@ -34,12 +34,12 @@ export function SignupPage() {
         body: JSON.stringify({ name: `${formData.firstName} ${formData.lastName}`, email: formData.email, password: formData.password, phone: formData.phone }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Failed to create account'); return; }
+      if (!res.ok) { toast(data.error || 'Failed to create account', 'error'); return; }
       login(data);
-      toast.success('Account created successfully!');
+      toast('Account created successfully!');
       navigate('home');
     } catch {
-      toast.error('Failed to create account');
+      toast('Failed to create account', 'error');
     } finally {
       setIsLoading(false);
     }

@@ -4,7 +4,7 @@ import { useStore } from '@/store/store';
 import { ProductCard } from '@/components/ProductCard';
 import { Clock, X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 export function RecentlyViewedSection() {
   const { recentlyViewed, clearRecentlyViewed } = useStore();
@@ -13,7 +13,7 @@ export function RecentlyViewedSection() {
 
   const handleClear = () => {
     clearRecentlyViewed();
-    toast.success('Viewing history cleared');
+    toast('Viewing history cleared');
   };
 
   return (

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useStore, type CartItem, type Product } from '@/store/store';
 import { Star, ShoppingBag, Heart, X, Eye, Minus, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function QuickViewContent({ product, onClose }: { product: Product; onClose: () => void }) {
@@ -25,16 +25,16 @@ function QuickViewContent({ product, onClose }: { product: Product; onClose: () 
       };
       addToCart(cartItem);
     }
-    toast.success(`${quantity} x ${product.name} added to cart!`);
+    toast(`${quantity} x ${product.name} added to cart!`);
   };
 
   const handleWishlistToggle = () => {
     if (!isAuthenticated || !user) {
-      toast.error('Please log in to add items to your wishlist');
+      toast('Please log in to add items to your wishlist', 'error');
       return;
     }
     toggleWishlist(product.id);
-    toast.success(isWishlisted ? `${product.name} removed from wishlist` : `${product.name} added to wishlist!`);
+    toast(isWishlisted ? `${product.name} removed from wishlist` : `${product.name} added to wishlist!`);
 
     if (isWishlisted) {
       fetch(`/api/wishlist?productId=${product.id}&userId=${user.id}`, { method: 'DELETE' }).catch(() => {});

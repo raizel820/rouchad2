@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Facebook, Instagram, Twitter, Mail, Loader2 } from 'lucide-react';
 import { useStore } from '@/store/store';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 export function Footer() {
   const { navigate, setSelectedCategory } = useStore();
@@ -17,12 +17,12 @@ export function Footer() {
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      toast.error('Please enter a valid email address');
+      toast('Please enter a valid email address', 'error');
       return;
     }
 
     if (!EMAIL_REGEX.test(trimmedEmail)) {
-      toast.error('Please enter a valid email address');
+      toast('Please enter a valid email address', 'error');
       return;
     }
 
@@ -37,17 +37,17 @@ export function Footer() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success('Thanks for subscribing! 🎉');
+        toast('Thanks for subscribing! 🎉');
         setEmail('');
       } else if (res.status === 409) {
-        toast.error('This email is already subscribed');
+        toast('This email is already subscribed', 'error');
       } else if (data.error) {
-        toast.error(data.error);
+        toast(data.error, 'error');
       } else {
-        toast.error('Something went wrong. Please try again.');
+        toast('Something went wrong. Please try again.', 'error');
       }
     } catch {
-      toast.error('Something went wrong. Please try again.');
+      toast('Something went wrong. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }

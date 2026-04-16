@@ -258,3 +258,35 @@ Stage Summary:
 - Quick View Modal: opens from Eye icon on any ProductCard hover overlay, shows product details with quantity selector, add to cart, wishlist toggle, and link to full details
 - Both features fully integrated with existing Zustand state management, API calls, and theme styling
 - No existing functionality broken
+
+---
+Task ID: fix-toast
+Agent: Main Developer
+Task: Replace sonner toast imports with custom toast solution across all files
+
+Work Log:
+- Identified 14 files importing `{ toast } from 'sonner'` that need migration to custom toast
+- Confirmed `src/lib/toast.tsx` exports `toast(message, type?)` and `ToastContainer` component
+- Confirmed `src/components/ui/sonner.tsx` and `src/components/SonnerWrapper.tsx` must NOT be modified
+- Changed `import { toast } from 'sonner'` to `import { toast } from '@/lib/toast'` in all 14 files:
+  - RecentlyViewedSection.tsx, ProductCard.tsx, AdminDashboard.tsx, ContactPage.tsx
+  - ProfilePage.tsx, SettingsPage.tsx, ProductDetailPage.tsx, SignupPage.tsx
+  - CheckoutPage.tsx, CartPage.tsx, LoginPage.tsx, QuickViewModal.tsx, Footer.tsx
+- Converted all `toast.success(msg)` calls to `toast(msg)` (success is default type)
+- Converted all `toast.error(msg)` calls to `toast(msg, 'error')`
+- Converted all `toast.info(msg)` calls to `toast(msg, 'info')` (found in SettingsPage.tsx for 2FA button)
+- Updated `src/app/page.tsx`:
+  - Removed `import dynamic from 'next/dynamic'`
+  - Removed `const SonnerToaster = dynamic(...)` block
+  - Removed `<SonnerToaster position="top-right" richColors closeButton />` from JSX
+  - Added `import { ToastContainer } from '@/lib/toast'`
+  - Added `<ToastContainer />` in the App div (after QuickViewWrapper)
+- Verified SonnerWrapper.tsx still imports `{ Toaster }` from 'sonner' (untouched as required)
+- All ESLint checks pass clean with zero errors
+
+Stage Summary:
+- All toast usage migrated from sonner to custom toast implementation
+- Custom toast uses React state + framer-motion animations instead of React portal
+- ToastContainer renders at z-index 200 with spring animations, auto-dismiss after 4s
+- No sonner toast imports remain in any src/ file (except SonnerWrapper.tsx which is intentionally untouched)
+- page.tsx no longer uses dynamic import for Sonner Toaster

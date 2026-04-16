@@ -19,7 +19,7 @@ import {
   Loader2,
   Shield,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface OrderItem {
@@ -118,7 +118,7 @@ export function AdminDashboard() {
       if (data.products) setProducts(data.products);
       if (data.customers) setCustomers(data.customers);
     } catch {
-      toast.error('Failed to load admin data');
+      toast('Failed to load admin data', 'error');
     }
     setLoading(false);
   };
@@ -139,7 +139,7 @@ export function AdminDashboard() {
         if (data.products) setProducts(data.products);
         if (data.customers) setCustomers(data.customers);
       } catch {
-        toast.error('Failed to load admin data');
+        toast('Failed to load admin data', 'error');
       }
       if (!cancelled) setLoading(false);
     })();
@@ -168,15 +168,15 @@ export function AdminDashboard() {
         body: JSON.stringify({ id: showOrderStatusModal.id, status: newOrderStatus }),
       });
       if (res.ok) {
-        toast.success(`Order #${showOrderStatusModal.orderNumber} status updated to ${newOrderStatus}`);
+        toast(`Order #${showOrderStatusModal.orderNumber} status updated to ${newOrderStatus}`);
         setShowOrderStatusModal(null);
         setNewOrderStatus('');
         fetchData();
       } else {
-        toast.error('Failed to update order status');
+        toast('Failed to update order status', 'error');
       }
     } catch {
-      toast.error('Failed to update order status');
+      toast('Failed to update order status', 'error');
     }
     setSaving(false);
   };
@@ -214,11 +214,11 @@ export function AdminDashboard() {
           body: JSON.stringify(productForm),
         });
         if (res.ok) {
-          toast.success('Product updated');
+          toast('Product updated');
           closeProductModal();
           fetchData();
         } else {
-          toast.error('Failed to update product');
+          toast('Failed to update product', 'error');
         }
       } else {
         // Create
@@ -228,15 +228,15 @@ export function AdminDashboard() {
           body: JSON.stringify(productForm),
         });
         if (res.ok) {
-          toast.success('Product created');
+          toast('Product created');
           closeProductModal();
           fetchData();
         } else {
-          toast.error('Failed to create product');
+          toast('Failed to create product', 'error');
         }
       }
     } catch {
-      toast.error('Failed to save product');
+      toast('Failed to save product', 'error');
     }
     setProductSaving(false);
   };
@@ -245,14 +245,14 @@ export function AdminDashboard() {
     try {
       const res = await fetch(`/api/admin/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success('Product deleted');
+        toast('Product deleted');
         setConfirmDelete(null);
         fetchData();
       } else {
-        toast.error('Failed to delete product');
+        toast('Failed to delete product', 'error');
       }
     } catch {
-      toast.error('Failed to delete product');
+      toast('Failed to delete product', 'error');
     }
   };
 
@@ -260,15 +260,15 @@ export function AdminDashboard() {
     try {
       const res = await fetch(`/api/admin/customers?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success('Customer deleted');
+        toast('Customer deleted');
         setConfirmDelete(null);
         fetchData();
       } else {
         const data = await res.json();
-        toast.error(data.error || 'Failed to delete customer');
+        toast(data.error || 'Failed to delete customer', 'error');
       }
     } catch {
-      toast.error('Failed to delete customer');
+      toast('Failed to delete customer', 'error');
     }
   };
 

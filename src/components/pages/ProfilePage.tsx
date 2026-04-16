@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '@/store/store';
 import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, Star, Plus, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Order {
@@ -119,9 +119,9 @@ export function ProfilePage() {
       await fetch(`/api/wishlist?id=${wishlistId}`, { method: 'DELETE' });
       toggleWishlist(productId);
       setWishlistProducts((prev) => prev.filter((p) => p.id !== productId));
-      toast.success(`${productName} removed from wishlist`);
+      toast(`${productName} removed from wishlist`);
     } catch {
-      toast.error('Failed to remove from wishlist');
+      toast('Failed to remove from wishlist', 'error');
     }
   };
 
@@ -170,11 +170,11 @@ export function ProfilePage() {
         });
         const data = await res.json();
         if (res.ok) {
-          toast.success('Address updated successfully!');
+          toast('Address updated successfully!');
           fetchAddresses();
           setShowAddressModal(false);
         } else {
-          toast.error(data.error || 'Failed to update address');
+          toast(data.error || 'Failed to update address', 'error');
         }
       } else {
         const res = await fetch('/api/addresses', {
@@ -184,15 +184,15 @@ export function ProfilePage() {
         });
         const data = await res.json();
         if (res.ok) {
-          toast.success('Address added successfully!');
+          toast('Address added successfully!');
           fetchAddresses();
           setShowAddressModal(false);
         } else {
-          toast.error(data.error || 'Failed to add address');
+          toast(data.error || 'Failed to add address', 'error');
         }
       }
     } catch {
-      toast.error('Failed to save address');
+      toast('Failed to save address', 'error');
     }
     setAddressSaving(false);
   };
@@ -203,13 +203,13 @@ export function ProfilePage() {
       const res = await fetch(`/api/addresses/${addressId}?userId=${user.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (res.ok) {
-        toast.success('Address deleted');
+        toast('Address deleted');
         fetchAddresses();
       } else {
-        toast.error(data.error || 'Failed to delete address');
+        toast(data.error || 'Failed to delete address', 'error');
       }
     } catch {
-      toast.error('Failed to delete address');
+      toast('Failed to delete address', 'error');
     }
   };
 
@@ -222,17 +222,17 @@ export function ProfilePage() {
         body: JSON.stringify({ userId: user.id, isDefault: true }),
       });
       if (res.ok) {
-        toast.success('Default address updated');
+        toast('Default address updated');
         fetchAddresses();
       }
     } catch {
-      toast.error('Failed to update default address');
+      toast('Failed to update default address', 'error');
     }
   };
 
   const handleLogout = () => {
     logout();
-    toast.success('Logged out successfully');
+    toast('Logged out successfully');
     navigate('home');
   };
 
@@ -461,7 +461,7 @@ export function ProfilePage() {
                             onClick={() => {
                               const { addToCart } = useStore.getState();
                               addToCart({ id: product.id, name: product.name, price: product.price, image: product.image, category: product.category, quantity: 1 });
-                              toast.success(`${product.name} added to cart!`);
+                              toast(`${product.name} added to cart!`);
                             }}
                             className="flex-1 px-4 py-2 bg-[#d4a5a5] text-white text-sm rounded-full hover:bg-[#c89a9a] transition-colors flex items-center justify-center gap-1.5"
                           >

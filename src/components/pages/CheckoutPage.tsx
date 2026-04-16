@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useStore } from '@/store/store';
 import { CreditCard, MapPin, User, Mail, Phone, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
 
 export function CheckoutPage() {
@@ -52,14 +52,14 @@ export function CheckoutPage() {
       setOrderId(order.id);
       setOrderPlaced(true);
       clearCart();
-      toast.success('Order placed successfully!');
+      toast('Order placed successfully!');
 
       setTimeout(() => {
         useStore.getState().setLastOrderId(order.id);
         navigate('order-confirmation');
       }, 2000);
     } catch {
-      toast.error('Failed to place order. Please try again.');
+      toast('Failed to place order. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }
