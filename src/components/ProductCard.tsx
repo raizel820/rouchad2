@@ -3,25 +3,7 @@
 import { useState } from 'react';
 import { ShoppingBag, Star, Heart, Eye } from 'lucide-react';
 import { useStore, type CartItem } from '@/store/store';
-// Inline toast function
-function toast(message: string, type: 'success' | 'error' | 'info' = 'success') {
-  let container = document.getElementById('__toast_container__') as HTMLDivElement | null;
-  if (!container) {
-    container = document.createElement('div');
-    container.id = '__toast_container__';
-    container.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;max-width:24rem;width:100%;pointer-events:none;';
-    document.body.appendChild(container);
-  }
-  const colors = { success: '#10b981', error: '#ef4444', info: '#3b82f6' };
-  const el = document.createElement('div');
-  el.style.cssText = 'pointer-events:auto;background:white;border-radius:0.75rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1),0 4px 6px -4px rgba(0,0,0,0.1);border:1px solid #f3f4f6;border-left:4px solid ' + colors[type] + ';padding:0.75rem 1rem;display:flex;align-items:flex-start;gap:0.75rem;transform:translateX(120%);opacity:0;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease;max-width:100%;';
-  el.innerHTML = '<p style="flex:1;font-size:0.875rem;color:#374151;line-height:1.4;margin:0">' + message + '</p><button style="color:#9ca3af;background:none;border:none;cursor:pointer;padding:0;font-size:1rem;line-height:1" aria-label="Close">&times;</button>';
-  el.querySelector('button')!.addEventListener('click', () => { el.style.transform = 'translateX(120%)'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); });
-  container.appendChild(el);
-  requestAnimationFrame(() => { el.style.transform = 'translateX(0)'; el.style.opacity = '1'; });
-  setTimeout(() => { el.style.transform = 'translateX(120%)'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
-}
-
+import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
 
 interface ProductCardProps {
