@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useStore } from '@/store/store';
 import { Hero } from '@/components/Hero';
 import { ProductCard } from '@/components/ProductCard';
+import { RecentlyViewedSection } from '@/components/RecentlyViewedSection';
 import { motion } from 'framer-motion';
 import { Star, Quote } from 'lucide-react';
 
@@ -204,6 +205,9 @@ export function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Recently Viewed */}
+      <RecentlyViewedSection />
 
       {/* Testimonials */}
       <section className="bg-[#fef5f1] py-16">

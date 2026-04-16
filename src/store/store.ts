@@ -29,6 +29,18 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  image: string;
+  description: string;
+  badge?: string;
+  rating: number;
+  reviewCount: number;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -55,9 +67,16 @@ interface StoreState {
   isAuthenticated: boolean;
 
   // Wishlist
-  wishlistItems: string[]
+  wishlistItems: string[];
   wishlistLoaded: boolean;
   profileTab: ProfileTab;
+
+  // Recently Viewed
+  recentlyViewed: Product[];
+
+  // Quick View
+  quickViewProduct: Product | null;
+  isQuickViewOpen: boolean;
 
   // Actions
   navigate: (page: Page) => void;
@@ -83,6 +102,12 @@ interface StoreState {
   toggleWishlist: (productId: string) => void;
   isWishlisted: (productId: string) => boolean;
   setWishlistLoaded: (loaded: boolean) => void;
+
+  addRecentlyViewed: (product: Product) => void;
+  clearRecentlyViewed: () => void;
+
+  openQuickView: (product: Product) => void;
+  closeQuickView: () => void;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -105,6 +130,13 @@ export const useStore = create<StoreState>((set, get) => ({
   wishlistItems: [],
   wishlistLoaded: false,
   profileTab: 'orders' as ProfileTab,
+
+  // Recently Viewed defaults
+  recentlyViewed: [],
+
+  // Quick View defaults
+  quickViewProduct: null,
+  isQuickViewOpen: false,
 
   // Navigation actions
   navigate: (page: Page) => {
@@ -184,4 +216,17 @@ export const useStore = create<StoreState>((set, get) => ({
   isWishlisted: (productId: string) => {
     return get().wishlistItems.includes(productId);
   },
+
+  // Recently Viewed actions
+  addRecentlyViewed: (product: Product) => {
+    set((state) => {
+      const filtered = state.recentlyViewed.filter((p) => p.id !== product.id);
+      return { recentlyViewed: [product, ...filtered].slice(0, 8) };
+    });
+  },
+  clearRecentlyViewed: () => set({ recentlyViewed: [] }),
+
+  // Quick View actions
+  openQuickView: (product: Product) => set({ quickViewProduct: product, isQuickViewOpen: true }),
+  closeQuickView: () => set({ quickViewProduct: null, isQuickViewOpen: false }),
 }));

@@ -6,6 +6,7 @@ import { Star, ShoppingBag, Heart, Share2, ArrowLeft, Send } from 'lucide-react'
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { ProductCard } from '@/components/ProductCard';
+import { ProductDetailSkeleton } from '@/components/Skeletons';
 
 interface Product {
   id: string;
@@ -28,7 +29,7 @@ interface Review {
 }
 
 export function ProductDetailPage() {
-  const { productId, navigate, addToCart, isAuthenticated, user, toggleWishlist, wishlistItems, setWishlistItems } = useStore();
+  const { productId, navigate, addToCart, isAuthenticated, user, toggleWishlist, wishlistItems, setWishlistItems, addRecentlyViewed } = useStore();
   const [product, setProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -67,6 +68,7 @@ export function ProductDetailPage() {
         if (cancelled) return;
         setProduct(productData);
         setReviews(reviewsData);
+        addRecentlyViewed(productData);
         return fetch(`/api/products?category=${productData.category}`);
       })
       .then((r) => r?.json())
@@ -174,18 +176,7 @@ export function ProductDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="aspect-square bg-[#fef5f1] rounded-xl animate-pulse" />
-          <div className="space-y-4 animate-pulse">
-            <div className="h-6 bg-[#fef5f1] rounded w-1/4" />
-            <div className="h-10 bg-[#fef5f1] rounded w-3/4" />
-            <div className="h-4 bg-[#fef5f1] rounded w-1/2" />
-          </div>
-        </div>
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   if (!product) {

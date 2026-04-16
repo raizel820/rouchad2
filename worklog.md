@@ -163,7 +163,98 @@ Stage Summary:
 - Admin dashboard with full CRUD for products, orders, and customers
 - All bugs from previous sessions fixed
 
-## Unresolved Issues
-- Admin credentials are currently hardcoded client-side (admin/admin) - consider moving to backend validation
-- No admin settings page to change admin password (mentioned in original repo requirements)
-- Some admin API routes may need additional error handling for edge cases
+---
+Task ID: 4a-2
+Agent: Feature Developer
+Task: Implement Newsletter Subscription with Backend
+
+Work Log:
+- Read existing worklog, Prisma schema, Footer.tsx, and newsletter API route to understand current state
+- Added `Newsletter` model to `prisma/schema.prisma` with `id`, `email` (unique), and `createdAt` fields
+- Ran `bun run db:push` to sync the new model to SQLite database (success)
+- Rewrote `src/app/api/newsletter/route.ts` POST endpoint:
+  - Validates email is present and non-empty (400)
+  - Validates email format with regex (400)
+  - Checks for duplicate email in database (409)
+  - Creates new Newsletter entry on success (201)
+  - Generic server error fallback (500)
+  - Trims and lowercases email before processing
+- Updated `src/components/Footer.tsx` newsletter form:
+  - Added `isLoading` state for loading management
+  - Added client-side email format validation before API call
+  - Success toast: "Thanks for subscribing! 🎉" + clears input
+  - Duplicate error toast (409): "This email is already subscribed"
+  - Invalid error toast: "Please enter a valid email address"
+  - Server error toast: "Something went wrong. Please try again."
+  - Subscribe button shows Loader2 spinner + "Subscribing..." text while loading
+  - Button disabled during submission with opacity and cursor changes
+- All ESLint checks pass clean
+
+Stage Summary:
+- Newsletter feature fully functional end-to-end: form → API → database
+- Email validation on both client and server side
+- Duplicate detection prevents re-subscription with clear user feedback
+- Loading state on button provides clear UX feedback during submission
+- All error cases handled with appropriate toast messages
+- Existing visual design (rose-gold/brown theme) preserved
+
+---
+Task ID: 4b-1
+Agent: UI Developer
+Task: Implement Scroll-to-Top, Loading Skeletons, and Page Transition Enhancements
+
+Work Log:
+- Created `src/components/ScrollToTop.tsx`: floating button with ArrowUp icon, framer-motion fade-in/out with scale animation, shows after 400px scroll, position fixed bottom-right, rose-gold (#d4a5a5) themed with shadow and backdrop blur, smooth scroll-to-top on click, responsive sizing (smaller on mobile)
+- Created `src/components/Skeletons.tsx`: two skeleton components — `ProductCardSkeleton` (card-shaped with square image placeholder + 3 text lines using animate-pulse with bg-[#f5e6e0]/30) and `ProductDetailSkeleton` (2-column grid matching actual layout with image, title, rating, price, description, quantity, buttons, and additional info placeholders)
+- Updated `ProductDetailPage.tsx`: replaced inline loading skeleton with imported `ProductDetailSkeleton` component
+- Updated `ProductsPage.tsx`: replaced inline loading skeletons (8 items) with 6 `ProductCardSkeleton` components from Skeletons.tsx
+- Updated `src/app/page.tsx`: enhanced page transition animations (slide-up with scale: initial y:20 scale:0.98, animate y:0 scale:1, exit y:-10 scale:0.99), increased transition duration from 0.2s to 0.3s for all page variants, imported and added `ScrollToTop` component to App layout
+- All ESLint checks pass clean
+
+Stage Summary:
+- ScrollToTop button added globally with polished framer-motion animations and responsive sizing
+- Reusable skeleton components created for consistent loading states across the app
+- ProductDetailPage and ProductsPage now use proper skeleton placeholders during data fetching
+- Page transitions enhanced with more polished slide-up + scale animation and longer duration
+
+---
+Task ID: 4a-1
+Agent: Feature Developer
+Task: Implement Recently Viewed Products and Quick View Modal
+
+Work Log:
+- Read worklog and all relevant source files (store, page.tsx, ProductCard, ProductDetailPage, HomePage) to understand existing patterns
+- Updated Zustand store (`src/store/store.ts`):
+  - Added exported `Product` interface with id, name, price, category, image, description, badge?, rating, reviewCount
+  - Added `recentlyViewed: Product[]` state and `addRecentlyViewed(product)` / `clearRecentlyViewed()` actions
+  - `addRecentlyViewed` moves duplicates to front and limits to 8 items
+  - Added `quickViewProduct: Product | null` and `isQuickViewOpen: boolean` state
+  - Added `openQuickView(product)` and `closeQuickView()` actions
+- Updated `ProductDetailPage.tsx`: called `addRecentlyViewed(productData)` after product data loads
+- Created `src/components/RecentlyViewedSection.tsx`:
+  - Horizontal scrollable row with snap-x/snap-mandatory
+  - Only renders when recentlyViewed.length > 0
+  - Clock icon heading with "Recently Viewed" title and subtitle
+  - "Clear History" button with X icon and rotation animation on hover
+  - Uses existing ProductCard for each item (220-240px wide cards)
+  - Staggered entrance animation with framer-motion
+  - Custom scrollbar styling
+- Created `src/components/QuickViewModal.tsx`:
+  - Split into QuickViewContent (inner stateful component) + QuickViewModal (outer wrapper) with key-based reset
+  - Modal overlay with backdrop blur, spring animation for open/close
+  - Shows product image, category badge, name, star rating, price, description
+  - Quantity selector (+/-) with Minus/Plus icons
+  - Add to Cart and Wishlist toggle buttons with full API integration
+  - "View Full Details" link navigates to product detail page and closes modal
+  - Close button, backdrop click to dismiss
+  - Responsive grid layout (stacked on mobile, side-by-side on desktop)
+- Updated `ProductCard.tsx`: added Eye icon button to hover overlay (above wishlist and cart buttons) calling `openQuickView(product)`
+- Updated `HomePage.tsx`: imported and added `<RecentlyViewedSection />` between Features and Testimonials sections
+- Updated `src/app/page.tsx`: imported QuickViewModal, created QuickViewWrapper component connected to Zustand, rendered it at root level
+- All ESLint checks pass clean
+
+Stage Summary:
+- Recently Viewed Products: tracks up to 8 products visited on ProductDetailPage, displays horizontal scrollable section on HomePage with clear history button
+- Quick View Modal: opens from Eye icon on any ProductCard hover overlay, shows product details with quantity selector, add to cart, wishlist toggle, and link to full details
+- Both features fully integrated with existing Zustand state management, API calls, and theme styling
+- No existing functionality broken

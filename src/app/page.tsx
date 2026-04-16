@@ -20,6 +20,8 @@ import { ProfilePage } from '@/components/pages/ProfilePage';
 import { SettingsPage } from '@/components/pages/SettingsPage';
 import { AdminDashboard } from '@/components/pages/AdminDashboard';
 import { AnimatePresence, motion } from 'framer-motion';
+import { ScrollToTop } from '@/components/ScrollToTop';
+import { QuickViewModal } from '@/components/QuickViewModal';
 
 // Global effect to load wishlist when user logs in
 function WishlistLoader() {
@@ -44,19 +46,30 @@ function WishlistLoader() {
   return null;
 }
 
+function QuickViewWrapper() {
+  const { isQuickViewOpen, quickViewProduct, closeQuickView } = useStore();
+  return (
+    <QuickViewModal
+      isOpen={isQuickViewOpen}
+      product={quickViewProduct}
+      onClose={closeQuickView}
+    />
+  );
+}
+
 function PageRenderer() {
   const { currentPage } = useStore();
 
   const pageVariants = {
-    initial: { opacity: 0, y: 8 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -8 },
+    initial: { opacity: 0, y: 20, scale: 0.98 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: -10, scale: 0.99 },
   };
 
   // Login, Signup, and Admin pages have their own full-screen layout (no header/footer)
   if (currentPage === 'login' || currentPage === 'signup' || currentPage === 'admin') {
     if (currentPage === 'admin') {
-      return <AnimatePresence mode="wait"><motion.div key="admin" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }}><AdminDashboard /></motion.div></AnimatePresence>;
+      return <AnimatePresence mode="wait"><motion.div key="admin" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}><AdminDashboard /></motion.div></AnimatePresence>;
     }
     return (
       <AnimatePresence mode="wait">
@@ -66,7 +79,7 @@ function PageRenderer() {
           initial="initial"
           animate="animate"
           exit="exit"
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.3 }}
         >
           {currentPage === 'login' && <LoginPage />}
           {currentPage === 'signup' && <SignupPage />}
@@ -116,7 +129,7 @@ function PageRenderer() {
         initial="initial"
         animate="animate"
         exit="exit"
-        transition={{ duration: 0.2 }}
+        transition={{ duration: 0.3 }}
         className="flex-1"
       >
         {renderPage()}
@@ -129,9 +142,11 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <WishlistLoader />
+      <ScrollToTop />
       <Header />
       <PageRenderer />
       <Footer />
+      <QuickViewWrapper />
     </div>
   );
 }

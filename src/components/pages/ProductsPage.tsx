@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '@/store/store';
 import { ProductCard } from '@/components/ProductCard';
+import { ProductCardSkeleton } from '@/components/Skeletons';
 import { Filter, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -110,12 +111,8 @@ export function ProductsPage() {
       {/* Products Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="aspect-square bg-[#fef5f1] rounded-xl" />
-              <div className="mt-4 h-4 bg-[#fef5f1] rounded w-3/4" />
-              <div className="mt-2 h-4 bg-[#fef5f1] rounded w-1/2" />
-            </div>
+          {[...Array(6)].map((_, i) => (
+            <ProductCardSkeleton key={i} />
           ))}
         </div>
       ) : products.length === 0 ? (

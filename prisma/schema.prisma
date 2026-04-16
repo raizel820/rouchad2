@@ -128,3 +128,9 @@ model Wishlist {
   product   Product @relation(fields: [productId], references: [id])
   createdAt DateTime @default(now())
 }
+
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}

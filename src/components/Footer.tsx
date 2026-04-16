@@ -1,28 +1,55 @@
 'use client';
 
 import { useState } from 'react';
-import { Facebook, Instagram, Twitter, Mail } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Mail, Loader2 } from 'lucide-react';
 import { useStore } from '@/store/store';
 import { toast } from 'sonner';
 
 export function Footer() {
   const { navigate, setSelectedCategory } = useStore();
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      try {
-        await fetch('/api/newsletter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
-        toast.success('Successfully subscribed to our newsletter!');
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success('Thanks for subscribing! 🎉');
         setEmail('');
-      } catch {
-        toast.error('Failed to subscribe. Please try again.');
+      } else if (res.status === 409) {
+        toast.error('This email is already subscribed');
+      } else if (data.error) {
+        toast.error(data.error);
+      } else {
+        toast.error('Something went wrong. Please try again.');
       }
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -47,8 +74,19 @@ export function Footer() {
               className="flex-1 px-4 py-3 rounded-full bg-white text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]"
               required
             />
-            <button type="submit" className="px-6 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors">
-              Subscribe
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-6 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Subscribing...
+                </>
+              ) : (
+                'Subscribe'
+              )}
             </button>
           </form>
         </div>

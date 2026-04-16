@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ShoppingBag, Star, Heart } from 'lucide-react';
+import { ShoppingBag, Star, Heart, Eye } from 'lucide-react';
 import { useStore, type CartItem } from '@/store/store';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -21,7 +21,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addToCart, setProductId, navigate, toggleWishlist, wishlistItems, isAuthenticated } = useStore();
+  const { addToCart, setProductId, navigate, toggleWishlist, wishlistItems, isAuthenticated, openQuickView } = useStore();
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const isWishlisted = wishlistItems.includes(product.id);
@@ -71,6 +71,11 @@ export function ProductCard({ product }: ProductCardProps) {
     navigate('product-detail');
   };
 
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openQuickView(product);
+  };
+
   return (
     <motion.div
       className="group cursor-pointer"
@@ -101,6 +106,13 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
           <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button
+              onClick={handleQuickView}
+              className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-sm hover:bg-white transition-colors"
+              aria-label="Quick view"
+            >
+              <Eye size={14} className="text-[#8b6f63]" />
+            </button>
             <button
               onClick={handleToggleWishlist}
               className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-sm hover:bg-white transition-colors"
