@@ -66,8 +66,8 @@ export function LoginPage() {
           <div className="bg-white rounded-2xl shadow-lg p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm text-[#8b6f63] mb-2"><Mail size={16} className="inline mr-2" />Email Address</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter your email" required
+                <label className="block text-sm text-[#8b6f63] mb-2"><Mail size={16} className="inline mr-2" />Email / Username</label>
+                <input type="text" name="email" value={formData.email} onChange={handleChange} placeholder="Enter your email or username" required
                   className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]" />
               </div>
               <div>

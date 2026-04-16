@@ -100,7 +100,8 @@ export function AdminDashboard() {
   const [showOrderStatusModal, setShowOrderStatusModal] = useState<Order | null>(null);
   const [newOrderStatus, setNewOrderStatus] = useState('');
   const [saving, setSaving] = useState(false);
-  const [showProductModal, setShowProductModal] = useState<Product | null>(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState({
     name: '', price: '', category: '', image: '', description: '', badge: '', stock: '50',
   });
@@ -183,7 +184,7 @@ export function AdminDashboard() {
   // --- Product Handlers ---
   const openProductModal = (product?: Product) => {
     if (product) {
-      setShowProductModal(product);
+      setEditingProduct(product);
       setProductForm({
         name: product.name,
         price: String(product.price),
@@ -194,24 +195,27 @@ export function AdminDashboard() {
         stock: String(product.stock),
       });
     } else {
-      setShowProductModal(null);
+      setEditingProduct(null);
       setProductForm({ name: '', price: '', category: 'Makeup', image: '', description: '', badge: '', stock: '50' });
     }
+    setIsProductModalOpen(true);
   };
+
+  const closeProductModal = () => setIsProductModalOpen(false);
 
   const handleProductSave = async () => {
     setProductSaving(true);
     try {
-      if (showProductModal) {
+      if (editingProduct) {
         // Update
-        const res = await fetch(`/api/admin/products/${showProductModal.id}`, {
+        const res = await fetch(`/api/admin/products/${editingProduct.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(productForm),
         });
         if (res.ok) {
           toast.success('Product updated');
-          setShowProductModal(null);
+          closeProductModal();
           fetchData();
         } else {
           toast.error('Failed to update product');
@@ -225,7 +229,7 @@ export function AdminDashboard() {
         });
         if (res.ok) {
           toast.success('Product created');
-          setShowProductModal(null);
+          closeProductModal();
           fetchData();
         } else {
           toast.error('Failed to create product');
@@ -728,13 +732,13 @@ export function AdminDashboard() {
 
       {/* ===== PRODUCT MODAL ===== */}
       <AnimatePresence>
-        {showProductModal !== null && (
+        {isProductModalOpen && (
           <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowProductModal(showProductModal ? showProductModal : 'closed' as unknown as Product)} />
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeProductModal} />
             <motion.div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-serif text-[#8b6f63]">{showProductModal ? 'Edit Product' : 'Add New Product'}</h3>
-                <button onClick={() => setShowProductModal(null as unknown as Product)} className="text-[#8b6f63]/40 hover:text-[#8b6f63]"><X size={20} /></button>
+                <h3 className="text-xl font-serif text-[#8b6f63]">{editingProduct ? 'Edit Product' : 'Add New Product'}</h3>
+                <button onClick={closeProductModal} className="text-[#8b6f63]/40 hover:text-[#8b6f63]"><X size={20} /></button>
               </div>
               <div className="space-y-4">
                 <div>
@@ -773,7 +777,7 @@ export function AdminDashboard() {
                   <textarea value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} rows={3} className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] resize-none" />
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => setShowProductModal(null as unknown as Product)} className="flex-1 px-4 py-3 border border-[#f5e6e0] text-[#8b6f63] rounded-full hover:bg-[#fef5f1] transition-colors">Cancel</button>
+                  <button onClick={closeProductModal} className="flex-1 px-4 py-3 border border-[#f5e6e0] text-[#8b6f63] rounded-full hover:bg-[#fef5f1] transition-colors">Cancel</button>
                   <button onClick={handleProductSave} disabled={productSaving || !productForm.name || !productForm.price} className="flex-1 px-4 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
                     {productSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                     {productSaving ? 'Saving...' : 'Save Product'}

@@ -134,3 +134,36 @@ Stage Summary:
 - Customer management (view, search, delete with safety checks)
 - Real-time stats from database (total orders, revenue, customers, products)
 - Beautiful modal dialogs for all operations with framer-motion animations
+
+---
+Task ID: 13-login-admin-fix
+Agent: Main Developer
+Task: Fix login page error preventing admin login, and fix admin product modal bugs
+
+Work Log:
+- BUG FIX: Login page had `type="email"` on the email/username input, which prevented "admin" from being entered (not a valid email format). HTML5 form validation blocked submission.
+  - Changed input type to `type="text"`
+  - Updated label to "Email / Username" and placeholder to "Enter your email or username"
+- BUG FIX: AdminDashboard product modal was broken - used `showProductModal !== null` to render but `openProductModal()` without args set state to `null`, so "Add Product" button could never open the modal
+  - Refactored to use separate state: `isProductModalOpen` (boolean) and `editingProduct` (Product | null)
+  - Added `closeProductModal()` helper function
+  - Fixed all modal open/close handlers (X button, backdrop click, Cancel button, save handlers)
+- Verified all fixes work via agent-browser testing: admin login succeeds, admin dashboard loads with all 4 tabs, product modal opens for both Add and Edit, customers tab shows data
+
+Stage Summary:
+- Admin login with admin/admin credentials now works correctly
+- Product modal (Add/Edit) opens and closes properly
+- All admin dashboard tabs functional: Overview, Orders, Products, Customers
+- No lint errors
+
+## Current Project Status
+- Full-stack cosmetic e-commerce store (Rare Beauty) fully functional
+- 15 pages: Home, Products, Product Detail, Cart, Checkout, Login, Signup, Contact, Order Confirmation, Order Tracking, Returns & Refunds, Help Center, Profile, Settings, Admin Dashboard
+- Backend: 15+ API routes with Prisma/SQLite
+- Admin dashboard with full CRUD for products, orders, and customers
+- All bugs from previous sessions fixed
+
+## Unresolved Issues
+- Admin credentials are currently hardcoded client-side (admin/admin) - consider moving to backend validation
+- No admin settings page to change admin password (mentioned in original repo requirements)
+- Some admin API routes may need additional error handling for edge cases
