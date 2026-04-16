@@ -139,13 +139,16 @@ function PageRenderer() {
 }
 
 export default function App() {
+  const { currentPage } = useStore();
+  const hideChrome = currentPage === 'login' || currentPage === 'signup' || currentPage === 'admin';
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <WishlistLoader />
       <ScrollToTop />
-      <Header />
+      {!hideChrome && <Header />}
       <PageRenderer />
-      <Footer />
+      {!hideChrome && <Footer />}
       <QuickViewWrapper />
     </div>
   );
