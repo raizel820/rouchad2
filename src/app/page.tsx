@@ -18,6 +18,7 @@ import { ReturnsRefundsPage } from '@/components/pages/ReturnsRefundsPage';
 import { HelpCenterPage } from '@/components/pages/HelpCenterPage';
 import { ProfilePage } from '@/components/pages/ProfilePage';
 import { SettingsPage } from '@/components/pages/SettingsPage';
+import { AdminDashboard } from '@/components/pages/AdminDashboard';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Global effect to load wishlist when user logs in
@@ -52,8 +53,11 @@ function PageRenderer() {
     exit: { opacity: 0, y: -8 },
   };
 
-  // Login and Signup pages have their own full-screen layout (no header/footer)
-  if (currentPage === 'login' || currentPage === 'signup') {
+  // Login, Signup, and Admin pages have their own full-screen layout (no header/footer)
+  if (currentPage === 'login' || currentPage === 'signup' || currentPage === 'admin') {
+    if (currentPage === 'admin') {
+      return <AnimatePresence mode="wait"><motion.div key="admin" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }}><AdminDashboard /></motion.div></AnimatePresence>;
+    }
     return (
       <AnimatePresence mode="wait">
         <motion.div
@@ -97,6 +101,8 @@ function PageRenderer() {
         return <ProfilePage />;
       case 'settings':
         return <SettingsPage />;
+      case 'admin':
+        return <AdminDashboard />;
       default:
         return <HomePage />;
     }

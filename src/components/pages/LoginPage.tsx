@@ -20,6 +20,19 @@ export function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // Check admin credentials first
+      if (formData.email === 'admin' && formData.password === 'admin') {
+        login({
+          id: 'admin',
+          name: 'Admin',
+          email: 'admin@rarebeauty.com',
+          role: 'admin',
+        });
+        toast.success('Welcome, Admin!');
+        navigate('admin');
+        return;
+      }
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,8 +101,8 @@ export function LoginPage() {
             <h2 className="text-4xl font-serif">Discover Your Beauty</h2>
             <p className="text-xl opacity-90">Premium cosmetics for everyone</p>
             <div className="grid grid-cols-3 gap-4 mt-12">
-              {[('🌸', 'Makeup'), ('🌿', 'Skincare'), ('🌹', 'Perfume')].map(([emoji, label]) => (
-                <div key={label} className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+              {(['🌸', 'Makeup'], ['🌿', 'Skincare'], ['🌹', 'Perfume']).map(([emoji, label]) => (
+                <div key={label as string} className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
                   <span className="text-3xl">{emoji}</span>
                   <p className="text-sm mt-2">{label}</p>
                 </div>

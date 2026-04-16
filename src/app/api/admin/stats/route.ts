@@ -7,7 +7,13 @@ export async function GET() {
       db.order.count(),
       db.product.count(),
       db.user.count(),
-      db.order.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }),
+      db.order.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          orderItems: { include: { product: { select: { name: true, image: true } } } },
+        },
+        take: 100,
+      }),
     ]);
 
     const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
@@ -15,8 +21,21 @@ export async function GET() {
 
     const customers = await db.user.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 20,
     });
+
+    // Calculate per-customer stats
+    const customerStats = await Promise.all(
+      customers.map(async (c) => {
+        const customerOrders = await db.order.findMany({ where: { userId: c.id } });
+        const totalSpent = customerOrders.reduce((sum, o) => sum + o.total, 0);
+        return {
+          ...c,
+          password: undefined,
+          orderCount: customerOrders.length,
+          totalSpent,
+        };
+      })
+    );
 
     const products = await db.product.findMany({
       orderBy: { sales: 'desc' },
@@ -34,7 +53,7 @@ export async function GET() {
         productGrowth: 4.2,
       },
       recentOrders,
-      customers,
+      customers: customerStats,
       products,
     });
   } catch (error) {
