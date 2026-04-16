@@ -19,6 +19,7 @@ export async function POST(request: Request) {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      birthdate: user.birthdate,
       role: user.role,
     });
   } catch (error) {

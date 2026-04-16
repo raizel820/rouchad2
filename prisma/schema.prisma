@@ -8,17 +8,51 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   name      String
-  email     String   @unique
+  email     String          @unique
   password  String
   phone     String?
-  role      String   @default("customer")
+  birthdate String?
+  role      String          @default("customer")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  orders        Order[]
+  reviews       Review[]
+  wishlist      Wishlist[]
+  addresses     Address[]
+  paymentMethods PaymentMethod[]
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  name      String
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  country   String
+  phone     String?
+  isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  orders    Order[]
-  reviews   Review[]
-  wishlist  Wishlist[]
+}
+
+model PaymentMethod {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String
+  lastFour   String
+  expiryMonth Int
+  expiryYear  Int
+  holderName String
+  isPreferred Boolean  @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model Product {

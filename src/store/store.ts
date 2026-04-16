@@ -34,6 +34,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  birthdate?: string;
   role: string;
 }
 
@@ -76,6 +77,7 @@ interface StoreState {
 
   login: (user: User) => void;
   logout: () => void;
+  updateUser: (data: Partial<User>) => void;
 
   setWishlistItems: (items: string[]) => void;
   toggleWishlist: (productId: string) => void;
@@ -156,6 +158,12 @@ export const useStore = create<StoreState>((set, get) => ({
   // Auth actions
   login: (user: User) => set({ user, isAuthenticated: true, wishlistLoaded: false, wishlistItems: [] }),
   logout: () => set({ user: null, isAuthenticated: false, wishlistItems: [], wishlistLoaded: false }),
+  updateUser: (data: Partial<User>) => {
+    const currentUser = get().user;
+    if (currentUser) {
+      set({ user: { ...currentUser, ...data } });
+    }
+  },
   navigateToProfile: (tab?: ProfileTab) => {
     set({ currentPage: 'profile', profileTab: tab || 'orders' });
     window.scrollTo({ top: 0, behavior: 'smooth' });

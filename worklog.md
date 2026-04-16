@@ -85,3 +85,26 @@ Stage Summary:
 - SettingsPage created as dedicated page matching original repo: account info, security, notifications, preferences
 - Both pages connected to real backend data (orders from API, wishlist from API)
 - All interactive buttons functional: track order, view details, add to cart, remove wishlist, remove address, save settings, toggle notifications
+
+---
+Task ID: 11-settings-functional-backend
+Agent: Main Developer
+Task: Make Settings page features fully functional with real backend API integration, and add Payment Methods section
+
+Work Log:
+- Updated Prisma schema: added `birthdate` field to User model, created new `Address` model (label, name, street, city, state, zipCode, country, phone, isDefault), created new `PaymentMethod` model (type, lastFour, expiryMonth, expiryYear, holderName, isPreferred)
+- Pushed schema to database with `bun run db:push`
+- Created 6 new API routes: `/api/user/profile` (GET/PUT), `/api/user/password` (PUT), `/api/addresses` (GET/POST), `/api/addresses/[id]` (PUT/DELETE), `/api/payment-methods` (GET/POST), `/api/payment-methods/[id]` (PUT/DELETE)
+- Updated Zustand store: added `birthdate` to User interface, added `updateUser()` action
+- Updated login API to return birthdate field
+- Completely rewrote SettingsPage.tsx: Account section (real save to API), Security section (password change with strength indicator, show/hide), NEW Payment Methods section (add/delete/set preferred, card type selector), Addresses section (CRUD with modal), Notifications and Preferences
+- Updated ProfilePage.tsx: addresses load from API with full CRUD, address count in sidebar, shows birthdate
+- All ESLint checks pass clean
+
+Stage Summary:
+- Settings page fully functional with real backend persistence
+- Birthdate can be set and persists
+- Password change with current password verification and strength indicator
+- Addresses CRUD with default management via modal forms
+- Payment Methods: add cards (Visa/MC/Amex/Discover), set preferred, delete
+- All data persists in SQLite via Prisma
