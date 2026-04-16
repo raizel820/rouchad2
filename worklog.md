@@ -64,11 +64,24 @@ Work Log:
 - BUG FIX: Footer social media links (Facebook, Instagram, Twitter) were dead href="#" - converted to functional buttons with toast feedback
 - BUG FIX: Footer "About" section links (Our Story, Sustainability, Privacy Policy, Terms of Service) were dead href="#" - converted to navigation buttons pointing to actual pages
 - Fixed ESLint error in ProfilePage (react-hooks/set-state-in-effect) by refactoring wishlist fetch
+---
+Task ID: 10-profile-settings-rewrite
+Agent: Main Developer
+Task: Rewrite ProfilePage and create SettingsPage to match original GitHub repo layout
+
+Work Log:
+- Cloned original repo (raizel820/rouchad) and inspected source files
+- Found original has: Profile.tsx (sidebar layout with orders/wishlist/addresses tabs) and Settings.tsx (separate page with account/security/notifications/preferences)
+- Our version had merged everything into one page with tabs - user reported it looked different
+- Rewrote ProfilePage.tsx: sidebar layout with user info card (avatar, name, email, order/wishlist counts), sidebar navigation (My Orders, Wishlist, Addresses, Settings link, Logout), main content area with orders tab (order cards with status, items, track/view details buttons), wishlist tab (product grid with add-to-cart and remove), addresses tab (address cards with default badge, edit/delete)
+- Created new SettingsPage.tsx as separate page: sidebar navigation (Account, Security, Notifications, Preferences), Account section (name, email, phone, DOB form), Security section (change password form, 2FA toggle, payment methods), Notifications section (toggle switches for order updates, promotions, newsletter, new arrivals, restock alerts), Preferences section (language, currency, theme dropdowns)
+- Added 'settings' route to Zustand store Page type union
+- Updated page.tsx PageRenderer to import and render SettingsPage
+- Fixed React Hooks lint error in SettingsPage (moved useState before early return)
 - All lint checks pass clean
 
 Stage Summary:
-- All buttons and interactive elements are now functional
-- Wishlist feature fully works end-to-end: add from ProductCard/ProductDetail, view in Profile, remove from Profile
-- Cart shows real product images
-- Share button copies link to clipboard
-- No dead links or non-functional buttons remain
+- ProfilePage now matches original repo: sidebar layout with user info, tabs for orders/wishlist/addresses, separate settings link
+- SettingsPage created as dedicated page matching original repo: account info, security, notifications, preferences
+- Both pages connected to real backend data (orders from API, wishlist from API)
+- All interactive buttons functional: track order, view details, add to cart, remove wishlist, remove address, save settings, toggle notifications

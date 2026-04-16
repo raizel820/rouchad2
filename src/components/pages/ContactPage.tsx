@@ -174,14 +174,15 @@ export function ContactPage() {
               <p className="text-sm text-[#8b6f63]/70 mb-6">Stay connected with us on social media for the latest updates, beauty tips, and exclusive offers.</p>
               <div className="flex gap-3">
                 {[
-                  { icon: <Instagram size={20} />, label: 'Instagram' },
-                  { icon: <Facebook size={20} />, label: 'Facebook' },
-                  { icon: <Twitter size={20} />, label: 'Twitter' },
+                  { icon: <Instagram size={20} />, label: 'Instagram', url: 'https://instagram.com/rarebeauty' },
+                  { icon: <Facebook size={20} />, label: 'Facebook', url: 'https://facebook.com/rarebeauty' },
+                  { icon: <Twitter size={20} />, label: 'Twitter', url: 'https://twitter.com/rarebeauty' },
                 ].map((social) => (
                   <button
                     key={social.label}
                     className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[#8b6f63] hover:bg-[#d4a5a5] hover:text-white transition-all shadow-sm"
                     aria-label={social.label}
+                    onClick={() => window.open(social.url, '_blank', 'noopener,noreferrer')}
                   >
                     {social.icon}
                   </button>

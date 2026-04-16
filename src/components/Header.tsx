@@ -1,20 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ShoppingBag, User, Menu, X } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, X, Heart } from 'lucide-react';
 import { useStore } from '@/store/store';
 
 export function Header() {
-  const { navigate, getCartCount, isAuthenticated, currentPage, setSelectedCategory, navigate: nav } = useStore();
+  const { navigate, getCartCount, isAuthenticated, currentPage, setSelectedCategory, wishlistItems, navigateToProfile } = useStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const cartCount = getCartCount();
+  const wishlistCount = wishlistItems.length;
   const categories = ['All', 'Makeup', 'Skincare', 'Haircare', 'Perfume'];
 
   const handleCategoryClick = (cat: string) => {
     setSelectedCategory(cat);
-    nav('products');
+    navigate('products');
+    setIsMenuOpen(false);
+  };
+
+  const handleWishlistClick = () => {
+    if (isAuthenticated) {
+      navigateToProfile('wishlist');
+    } else {
+      navigate('login');
+    }
     setIsMenuOpen(false);
   };
 
@@ -32,7 +42,7 @@ export function Header() {
           </button>
 
           {/* Logo */}
-          <button onClick={() => nav('home')} className="text-2xl font-serif text-[#8b6f63] hover:text-[#d4a5a5] transition-colors">
+          <button onClick={() => navigate('home')} className="text-2xl font-serif text-[#8b6f63] hover:text-[#d4a5a5] transition-colors">
             Rare Beauty
           </button>
 
@@ -49,7 +59,7 @@ export function Header() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.currentTarget.value) {
                     useStore.getState().setSearchQuery(e.currentTarget.value);
-                    nav('products');
+                    navigate('products');
                     setIsSearchOpen(false);
                   }
                 }}
@@ -67,9 +77,23 @@ export function Header() {
               <Search size={20} className="text-[#8b6f63]" />
             </button>
 
+            {/* Wishlist */}
+            <button
+              onClick={handleWishlistClick}
+              className="p-2 hover:bg-[#fef5f1] rounded-full transition-colors relative"
+              aria-label="Wishlist"
+            >
+              <Heart size={20} className={isAuthenticated && wishlistCount > 0 ? 'text-red-500 fill-red-500' : 'text-[#8b6f63]'} />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                  {wishlistCount > 99 ? '99+' : wishlistCount}
+                </span>
+              )}
+            </button>
+
             {isAuthenticated ? (
               <button
-                onClick={() => nav('profile')}
+                onClick={() => navigateToProfile()}
                 className="p-2 hover:bg-[#fef5f1] rounded-full transition-colors"
                 aria-label="Profile"
               >
@@ -77,7 +101,7 @@ export function Header() {
               </button>
             ) : (
               <button
-                onClick={() => nav('login')}
+                onClick={() => navigate('login')}
                 className="hidden sm:block px-4 py-2 text-sm text-[#8b6f63] hover:text-[#d4a5a5] transition-colors"
               >
                 Sign In
@@ -85,7 +109,7 @@ export function Header() {
             )}
 
             <button
-              onClick={() => nav('cart')}
+              onClick={() => navigate('cart')}
               className="p-2 hover:bg-[#fef5f1] rounded-full transition-colors relative"
               aria-label="Cart"
             >
@@ -102,7 +126,7 @@ export function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center justify-center gap-8 pb-4 border-t border-[#f5e6e0] pt-3">
           <button
-            onClick={() => nav('home')}
+            onClick={() => navigate('home')}
             className={`text-sm transition-colors ${currentPage === 'home' ? 'text-[#d4a5a5] font-medium' : 'text-[#8b6f63] hover:text-[#d4a5a5]'}`}
           >
             Home
@@ -127,7 +151,7 @@ export function Header() {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <nav className="lg:hidden flex flex-col gap-3 pb-4 border-t border-[#f5e6e0] pt-4">
-            <button onClick={() => { nav('home'); setIsMenuOpen(false); }} className="text-sm text-[#8b6f63] hover:text-[#d4a5a5] text-left py-1">Home</button>
+            <button onClick={() => { navigate('home'); setIsMenuOpen(false); }} className="text-sm text-[#8b6f63] hover:text-[#d4a5a5] text-left py-1">Home</button>
             {categories.slice(1).map((category) => (
               <button key={category} onClick={() => handleCategoryClick(category)} className="text-sm text-[#8b6f63] hover:text-[#d4a5a5] text-left py-1">
                 {category}
@@ -137,8 +161,13 @@ export function Header() {
               All Products
             </button>
             <div className="border-t border-[#f5e6e0] pt-3 mt-1">
-              <button onClick={() => { nav('contact'); setIsMenuOpen(false); }} className="text-sm text-[#8b6f63] hover:text-[#d4a5a5] text-left py-1">Contact</button>
-              <button onClick={() => { nav('help-center'); setIsMenuOpen(false); }} className="text-sm text-[#8b6f63] hover:text-[#d4a5a5] text-left py-1">Help Center</button>
+              {isAuthenticated && (
+                <button onClick={() => { handleWishlistClick(); }} className="text-sm text-[#8b6f63] hover:text-[#d4a5a5] text-left py-1">
+                  Wishlist {wishlistCount > 0 && `(${wishlistCount})`}
+                </button>
+              )}
+              <button onClick={() => { navigate('contact'); setIsMenuOpen(false); }} className="text-sm text-[#8b6f63] hover:text-[#d4a5a5] text-left py-1">Contact</button>
+              <button onClick={() => { navigate('help-center'); setIsMenuOpen(false); }} className="text-sm text-[#8b6f63] hover:text-[#d4a5a5] text-left py-1">Help Center</button>
             </div>
           </nav>
         )}
@@ -156,7 +185,7 @@ export function Header() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.currentTarget.value) {
                     useStore.getState().setSearchQuery(e.currentTarget.value);
-                    nav('products');
+                    navigate('products');
                     setIsSearchOpen(false);
                     setIsMenuOpen(false);
                   }

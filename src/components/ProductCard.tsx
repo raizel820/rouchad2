@@ -111,9 +111,13 @@ export function ProductCard({ product }: ProductCardProps) {
                 className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-[#8b6f63]'}
               />
             </button>
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-sm">
+            <button
+              onClick={handleAddToCart}
+              className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-sm hover:bg-white transition-colors"
+              aria-label="Quick add to cart"
+            >
               <ShoppingBag size={14} className="text-[#8b6f63]" />
-            </div>
+            </button>
           </div>
         </div>
 

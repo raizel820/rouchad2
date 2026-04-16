@@ -62,13 +62,13 @@ export function Footer() {
             <h3 className="text-xl font-serif text-[#8b6f63] mb-4">Rare Beauty</h3>
             <p className="text-sm text-[#8b6f63]/70 mb-4">Let beauty be what you feel. Premium cosmetics for everyone.</p>
             <div className="flex gap-3">
-              <button onClick={() => toast.info('Follow us on Facebook!')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Facebook">
+              <button onClick={() => window.open('https://facebook.com/rarebeauty', '_blank', 'noopener,noreferrer')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Facebook">
                 <Facebook size={18} className="text-[#8b6f63] group-hover:text-white transition-colors" />
               </button>
-              <button onClick={() => toast.info('Follow us on Instagram!')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Instagram">
+              <button onClick={() => window.open('https://instagram.com/rarebeauty', '_blank', 'noopener,noreferrer')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Instagram">
                 <Instagram size={18} className="text-[#8b6f63] group-hover:text-white transition-colors" />
               </button>
-              <button onClick={() => toast.info('Follow us on Twitter!')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Twitter">
+              <button onClick={() => window.open('https://twitter.com/rarebeauty', '_blank', 'noopener,noreferrer')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Twitter">
                 <Twitter size={18} className="text-[#8b6f63] group-hover:text-white transition-colors" />
               </button>
               <button onClick={() => navigate('contact')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Email us">

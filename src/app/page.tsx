@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useStore } from '@/store/store';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -16,7 +17,31 @@ import { OrderTrackingPage } from '@/components/pages/OrderTrackingPage';
 import { ReturnsRefundsPage } from '@/components/pages/ReturnsRefundsPage';
 import { HelpCenterPage } from '@/components/pages/HelpCenterPage';
 import { ProfilePage } from '@/components/pages/ProfilePage';
+import { SettingsPage } from '@/components/pages/SettingsPage';
 import { AnimatePresence, motion } from 'framer-motion';
+
+// Global effect to load wishlist when user logs in
+function WishlistLoader() {
+  const { isAuthenticated, user, wishlistLoaded, setWishlistItems, setWishlistLoaded } = useStore();
+
+  useEffect(() => {
+    if (!isAuthenticated || !user || wishlistLoaded) return;
+    let cancelled = false;
+    fetch(`/api/wishlist?userId=${user.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (Array.isArray(data)) {
+          setWishlistItems(data.map((item: { productId: string }) => item.productId));
+        }
+        setWishlistLoaded(true);
+      })
+      .catch(() => setWishlistLoaded(true));
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user, wishlistLoaded, setWishlistItems, setWishlistLoaded]);
+
+  return null;
+}
 
 function PageRenderer() {
   const { currentPage } = useStore();
@@ -70,6 +95,8 @@ function PageRenderer() {
         return <HelpCenterPage />;
       case 'profile':
         return <ProfilePage />;
+      case 'settings':
+        return <SettingsPage />;
       default:
         return <HomePage />;
     }
@@ -95,6 +122,7 @@ function PageRenderer() {
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <WishlistLoader />
       <Header />
       <PageRenderer />
       <Footer />

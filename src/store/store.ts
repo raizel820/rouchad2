@@ -15,7 +15,10 @@ export type Page =
   | 'order-tracking'
   | 'returns-refunds'
   | 'help-center'
-  | 'contact';
+  | 'contact'
+  | 'wishlist';
+
+export type ProfileTab = 'orders' | 'wishlist' | 'settings';
 
 export interface CartItem {
   id: string;
@@ -51,10 +54,13 @@ interface StoreState {
   isAuthenticated: boolean;
 
   // Wishlist
-  wishlistItems: string[];
+  wishlistItems: string[]
+  wishlistLoaded: boolean;
+  profileTab: ProfileTab;
 
   // Actions
   navigate: (page: Page) => void;
+  navigateToProfile: (tab?: ProfileTab) => void;
   setProductId: (id: string | null) => void;
   setSelectedCategory: (category: string) => void;
   setSortBy: (sort: string) => void;
@@ -74,6 +80,7 @@ interface StoreState {
   setWishlistItems: (items: string[]) => void;
   toggleWishlist: (productId: string) => void;
   isWishlisted: (productId: string) => boolean;
+  setWishlistLoaded: (loaded: boolean) => void;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -94,6 +101,8 @@ export const useStore = create<StoreState>((set, get) => ({
 
   // Wishlist defaults
   wishlistItems: [],
+  wishlistLoaded: false,
+  profileTab: 'orders' as ProfileTab,
 
   // Navigation actions
   navigate: (page: Page) => {
@@ -145,8 +154,12 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   // Auth actions
-  login: (user: User) => set({ user, isAuthenticated: true }),
-  logout: () => set({ user: null, isAuthenticated: false, wishlistItems: [] }),
+  login: (user: User) => set({ user, isAuthenticated: true, wishlistLoaded: false, wishlistItems: [] }),
+  logout: () => set({ user: null, isAuthenticated: false, wishlistItems: [], wishlistLoaded: false }),
+  navigateToProfile: (tab?: ProfileTab) => {
+    set({ currentPage: 'profile', profileTab: tab || 'orders' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
 
   // Wishlist actions
   setWishlistItems: (items: string[]) => set({ wishlistItems: items }),
@@ -159,6 +172,7 @@ export const useStore = create<StoreState>((set, get) => ({
       set({ wishlistItems: [...state.wishlistItems, productId] });
     }
   },
+  setWishlistLoaded: (loaded: boolean) => set({ wishlistLoaded: loaded }),
   isWishlisted: (productId: string) => {
     return get().wishlistItems.includes(productId);
   },

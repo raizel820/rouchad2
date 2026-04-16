@@ -278,13 +278,29 @@ export function ProductDetailPage() {
               {isWishlisted ? 'Wishlisted' : 'Add to Wishlist'}
             </button>
             <button
-              onClick={() => {
-                const url = window.location.origin + '?product=' + product.id;
-                navigator.clipboard.writeText(url).then(() => {
-                  toast.success('Product link copied to clipboard!');
-                }).catch(() => {
-                  toast.success('Share this product with friends!');
-                });
+              onClick={async () => {
+                const shareData = {
+                  title: product.name,
+                  text: `Check out ${product.name} on Rare Beauty!`,
+                  url: window.location.href,
+                };
+                if (navigator.share) {
+                  try {
+                    await navigator.share(shareData);
+                  } catch (err) {
+                    // User cancelled or share failed, fallback to clipboard
+                    if (err instanceof Error && err.name !== 'AbortError') {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success('Product link copied to clipboard!');
+                    }
+                  }
+                } else {
+                  navigator.clipboard.writeText(window.location.href).then(() => {
+                    toast.success('Product link copied to clipboard!');
+                  }).catch(() => {
+                    toast.success('Share this product with friends!');
+                  });
+                }
               }}
               className="px-6 py-4 border-2 border-[#d4a5a5] text-[#d4a5a5] rounded-full hover:bg-[#d4a5a5] hover:text-white transition-all flex items-center gap-2"
               aria-label="Share product"
