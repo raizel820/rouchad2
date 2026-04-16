@@ -19,6 +19,13 @@ export type Page =
   | 'wishlist';
 
 export type ProfileTab = 'orders' | 'wishlist' | 'settings';
+export type ToastType = 'success' | 'error' | 'info';
+
+export interface ToastItem {
+  id: number;
+  message: string;
+  type: ToastType;
+}
 
 export interface CartItem {
   id: string;
@@ -78,6 +85,9 @@ interface StoreState {
   quickViewProduct: Product | null;
   isQuickViewOpen: boolean;
 
+  // Toasts
+  toasts: ToastItem[];
+
   // Actions
   navigate: (page: Page) => void;
   navigateToProfile: (tab?: ProfileTab) => void;
@@ -108,6 +118,9 @@ interface StoreState {
 
   openQuickView: (product: Product) => void;
   closeQuickView: () => void;
+
+  addToast: (message: string, type?: ToastType) => void;
+  removeToast: (id: number) => void;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -137,6 +150,9 @@ export const useStore = create<StoreState>((set, get) => ({
   // Quick View defaults
   quickViewProduct: null,
   isQuickViewOpen: false,
+
+  // Toast defaults
+  toasts: [],
 
   // Navigation actions
   navigate: (page: Page) => {
@@ -229,4 +245,16 @@ export const useStore = create<StoreState>((set, get) => ({
   // Quick View actions
   openQuickView: (product: Product) => set({ quickViewProduct: product, isQuickViewOpen: true }),
   closeQuickView: () => set({ quickViewProduct: null, isQuickViewOpen: false }),
+
+  // Toast actions
+  addToast: (message: string, type: ToastType = 'success') => {
+    const id = Date.now() + Math.random();
+    set((state) => ({ toasts: [...state.toasts, { id, message, type }] }));
+    setTimeout(() => {
+      set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
+    }, 4000);
+  },
+  removeToast: (id: number) => {
+    set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
+  },
 }));
