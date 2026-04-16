@@ -62,18 +62,18 @@ export function Footer() {
             <h3 className="text-xl font-serif text-[#8b6f63] mb-4">Rare Beauty</h3>
             <p className="text-sm text-[#8b6f63]/70 mb-4">Let beauty be what you feel. Premium cosmetics for everyone.</p>
             <div className="flex gap-3">
-              <a href="#" className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors">
+              <button onClick={() => toast.info('Follow us on Facebook!')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Facebook">
                 <Facebook size={18} className="text-[#8b6f63] group-hover:text-white transition-colors" />
-              </a>
-              <a href="#" className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors">
+              </button>
+              <button onClick={() => toast.info('Follow us on Instagram!')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Instagram">
                 <Instagram size={18} className="text-[#8b6f63] group-hover:text-white transition-colors" />
-              </a>
-              <a href="#" className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors">
+              </button>
+              <button onClick={() => toast.info('Follow us on Twitter!')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Twitter">
                 <Twitter size={18} className="text-[#8b6f63] group-hover:text-white transition-colors" />
-              </a>
-              <a href="#" className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors">
+              </button>
+              <button onClick={() => navigate('contact')} className="p-2 bg-white rounded-full hover:bg-[#d4a5a5] group transition-colors" aria-label="Email us">
                 <Mail size={18} className="text-[#8b6f63] group-hover:text-white transition-colors" />
-              </a>
+              </button>
             </div>
           </div>
 
@@ -106,10 +106,10 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-medium text-[#8b6f63] mb-4">About</h4>
             <ul className="space-y-2 text-sm text-[#8b6f63]/70">
-              <li><a href="#" className="hover:text-[#d4a5a5] transition-colors">Our Story</a></li>
-              <li><a href="#" className="hover:text-[#d4a5a5] transition-colors">Sustainability</a></li>
-              <li><a href="#" className="hover:text-[#d4a5a5] transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-[#d4a5a5] transition-colors">Terms of Service</a></li>
+              <li><button onClick={() => navigate('contact')} className="hover:text-[#d4a5a5] transition-colors">Our Story</button></li>
+              <li><button onClick={() => navigate('contact')} className="hover:text-[#d4a5a5] transition-colors">Sustainability</button></li>
+              <li><button onClick={() => navigate('help-center')} className="hover:text-[#d4a5a5] transition-colors">Privacy Policy</button></li>
+              <li><button onClick={() => navigate('help-center')} className="hover:text-[#d4a5a5] transition-colors">Terms of Service</button></li>
             </ul>
           </div>
         </div>

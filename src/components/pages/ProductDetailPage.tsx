@@ -277,8 +277,20 @@ export function ProductDetailPage() {
               <Heart size={20} className={isWishlisted ? 'fill-red-500 text-red-500' : ''} />
               {isWishlisted ? 'Wishlisted' : 'Add to Wishlist'}
             </button>
-            <button className="px-6 py-4 border-2 border-[#d4a5a5] text-[#d4a5a5] rounded-full hover:bg-[#d4a5a5] hover:text-white transition-all">
+            <button
+              onClick={() => {
+                const url = window.location.origin + '?product=' + product.id;
+                navigator.clipboard.writeText(url).then(() => {
+                  toast.success('Product link copied to clipboard!');
+                }).catch(() => {
+                  toast.success('Share this product with friends!');
+                });
+              }}
+              className="px-6 py-4 border-2 border-[#d4a5a5] text-[#d4a5a5] rounded-full hover:bg-[#d4a5a5] hover:text-white transition-all flex items-center gap-2"
+              aria-label="Share product"
+            >
               <Share2 size={20} />
+              Share
             </button>
           </div>
 

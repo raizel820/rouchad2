@@ -60,8 +60,8 @@ export function CartPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20, height: 0 }}
               >
-                <div className="w-24 h-24 bg-[#fef5f1] rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-                  <span className="text-3xl opacity-40">💄</span>
+                <div className="w-24 h-24 bg-[#fef5f1] rounded-lg overflow-hidden flex-shrink-0">
+                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 </div>
 
                 <div className="flex-1 flex flex-col">

@@ -51,7 +51,8 @@ export function ProductCard({ product }: ProductCardProps) {
 
     // Call API in background
     if (isWishlisted) {
-      fetch(`/api/wishlist?productId=${product.id}`, { method: 'DELETE' }).catch(() => {});
+      const { user: currentUser } = useStore.getState();
+      fetch(`/api/wishlist?productId=${product.id}${currentUser ? '&userId=' + currentUser.id : ''}`, { method: 'DELETE' }).catch(() => {});
     } else {
       // We need the user ID from the store
       const { user } = useStore.getState();
