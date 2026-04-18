@@ -20,19 +20,6 @@ export function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Check admin credentials first
-      if (formData.email === 'admin' && formData.password === 'admin') {
-        login({
-          id: 'admin',
-          name: 'Admin',
-          email: 'admin@rarebeauty.com',
-          role: 'admin',
-        });
-        toast('Welcome, Admin!');
-        navigate('admin');
-        return;
-      }
-
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,8 +31,13 @@ export function LoginPage() {
         return;
       }
       login(data);
-      toast('Welcome back!');
-      navigate('home');
+      if (data.role === 'admin') {
+        toast('Welcome, Admin!');
+        navigate('admin');
+      } else {
+        toast('Welcome back!');
+        navigate('home');
+      }
     } catch {
       toast('Failed to login', 'error');
     } finally {

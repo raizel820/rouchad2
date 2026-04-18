@@ -530,3 +530,33 @@ Stage Summary:
 4. **Mobile responsiveness**: Test checkout flow on mobile viewports
 5. **Order tracking**: Add visual timeline component for order status tracking
 6. **Performance**: Consider adding image optimization with Next.js Image component
+
+---
+Task ID: fix-settings-crud-bugs
+Agent: Main Developer
+Task: Fix settings page CRUD operations (profile update, password change, address, payment method)
+
+Work Log:
+- Investigated all backend APIs via curl: profile PUT, password PUT, addresses POST, payment-methods POST - all returned 200 with correct data
+- Used agent-browser to test the live app UI: login → navigate to Settings page → attempt to save profile
+- Checked dev.log and found the root cause: `GET /api/user/profile?userId=admin 404` and `PUT /api/user/profile 500 (P2025: No record was found for an update)`
+- ROOT CAUSE: LoginPage.tsx hardcoded admin user with `id: 'admin'` when using admin/admin credentials, but the actual database user has `id: 'cmo1c27pe0000ik54sryp1zjd'`
+- All Settings page API calls use `user.id` from the Zustand store, so they passed the fake "admin" ID which doesn't exist in the database
+- This caused ALL settings operations to silently fail (500 errors caught by try/catch, showing generic toast errors or no feedback)
+- FIXED LoginPage.tsx: removed hardcoded admin login block, now all logins go through `/api/auth/login` API endpoint
+- FIXED LoginPage.tsx: added admin role detection from API response (`data.role === 'admin'`) to navigate to admin dashboard
+- FIXED /api/auth/login/route.ts: added username support - when email is "admin", searches by `{ OR: [{ email }, { role: 'admin' }] }` so admin login works with just username
+- Verified all operations work with correct user ID: profile update ✅, password change ✅, address add ✅, payment method add ✅
+- All ESLint checks pass clean
+
+Stage Summary:
+- ROOT CAUSE: Admin login hardcoded `id: 'admin'` instead of using real database ID
+- FIX 1: LoginPage now routes ALL logins (including admin) through the API endpoint
+- FIX 2: Login API now supports username "admin" lookup via OR clause
+- FIX 3: LoginPage detects admin role from API response for dashboard navigation
+- All settings operations (profile, password, address, payment method) now work correctly for both admin and regular users
+
+## Current Project Status
+- Full-stack cosmetic e-commerce store (Rare Beauty) fully functional
+- Admin and regular user login both use real database user IDs
+- Settings page CRUD operations verified working for both user types

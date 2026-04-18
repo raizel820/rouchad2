@@ -9,7 +9,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const user = await db.user.findUnique({ where: { email } });
+    // Support login with either email or username
+    const user = await db.user.findFirst({
+      where: {
+        OR: [
+          { email: email },
+          ...(email.toLowerCase() === 'admin' ? [{ role: 'admin' }] : []),
+        ],
+      },
+    });
+
     if (!user || user.password !== password) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
