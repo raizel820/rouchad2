@@ -31,6 +31,7 @@ interface OrderItem {
   id: string;
   quantity: number;
   price: number;
+  color?: string | null;
   product?: { name: string; image: string };
 }
 
@@ -849,7 +850,15 @@ export function AdminDashboard() {
                         <div className="w-12 h-12 bg-[#fef5f1] rounded-lg overflow-hidden flex-shrink-0">
                           {item.product?.image ? <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg opacity-30">💄</div>}
                         </div>
-                        <div className="flex-1 min-w-0"><p className="text-sm text-[#8b6f63] truncate">{item.product?.name || 'Product'}</p><p className="text-xs text-[#8b6f63]/50">Qty: {item.quantity}</p></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-[#8b6f63] truncate">{item.product?.name || 'Product'}</p>
+                            {item.color && item.color !== 'default' && (
+                              <span className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: item.color }} title={item.color} />
+                            )}
+                          </div>
+                          <p className="text-xs text-[#8b6f63]/50">Qty: {item.quantity}{item.color && item.color !== 'default' ? <span className="ml-1.5">· <span className="font-mono text-[#d4a5a5]">{item.color}</span></span> : ''}</p>
+                        </div>
                         <p className="text-sm text-[#8b6f63] font-medium">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
                     ))}

@@ -25,6 +25,7 @@ interface OrderItem {
   id: string;
   quantity: number;
   price: number;
+  color?: string | null;
   product?: { name: string; image: string; id: string } | null;
 }
 
@@ -353,11 +354,17 @@ function OrderDetailsCard({ order }: { order: Order }) {
                   </div>
                   {/* Product info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] truncate">
-                      {item.product?.name || 'Product'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] truncate">
+                        {item.product?.name || 'Product'}
+                      </p>
+                      {item.color && item.color !== 'default' && (
+                        <span className="w-4 h-4 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0" style={{ backgroundColor: item.color }} title={item.color} />
+                      )}
+                    </div>
                     <p className="text-xs text-[#8b6f63]/50 dark:text-[#e8ddd5]/50">
                       Qty: {item.quantity} &middot; ${item.price.toFixed(2)} each
+                      {item.color && item.color !== 'default' && <span className="ml-1.5">· <span className="font-mono text-[#d4a5a5] dark:text-[#d4a5a5]">{item.color}</span></span>}
                     </p>
                   </div>
                   <p className="text-sm font-semibold text-[#8b6f63] dark:text-[#e8ddd5] flex-shrink-0">

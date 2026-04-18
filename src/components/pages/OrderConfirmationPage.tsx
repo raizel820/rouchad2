@@ -9,6 +9,7 @@ interface OrderItem {
   id: string;
   quantity: number;
   price: number;
+  color?: string | null;
   product?: { name: string; image: string };
 }
 
@@ -139,7 +140,10 @@ export function OrderConfirmationPage() {
               <div className="space-y-2">
                 {order.orderItems.map((item) => (
                   <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-[#8b6f63]/70">
+                    <span className="text-[#8b6f63]/70 flex items-center gap-2">
+                      {item.color && item.color !== 'default' && (
+                        <span className="w-3.5 h-3.5 rounded-full border border-gray-200 flex-shrink-0 inline-block" style={{ backgroundColor: item.color }} title={item.color} />
+                      )}
                       {item.product?.name || 'Product'} x {item.quantity}
                     </span>
                     <span className="text-[#8b6f63]">${(item.price * item.quantity).toFixed(2)}</span>
