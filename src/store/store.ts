@@ -34,6 +34,7 @@ export interface CartItem {
   image: string;
   category: string;
   quantity: number;
+  selectedColor: string;
 }
 
 export interface Product {
@@ -168,30 +169,30 @@ export const useStore = create<StoreState>((set, get) => ({
   // Cart actions
   addToCart: (item: CartItem) => {
     set((state) => {
-      const existing = state.cartItems.find((i) => i.id === item.id);
+      const existing = state.cartItems.find((i) => i.id === item.id && i.selectedColor === item.selectedColor);
       if (existing) {
         return {
           cartItems: state.cartItems.map((i) =>
-            i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+            i.id === item.id && i.selectedColor === item.selectedColor ? { ...i, quantity: i.quantity + 1 } : i
           ),
         };
       }
       return { cartItems: [...state.cartItems, { ...item, quantity: 1 }] };
     });
   },
-  removeFromCart: (id: string) => {
+  removeFromCart: (id: string, selectedColor?: string) => {
     set((state) => ({
-      cartItems: state.cartItems.filter((i) => i.id !== id),
+      cartItems: state.cartItems.filter((i) => !(i.id === id && i.selectedColor === selectedColor)),
     }));
   },
-  updateQuantity: (id: string, quantity: number) => {
+  updateQuantity: (id: string, quantity: number, selectedColor?: string) => {
     if (quantity <= 0) {
-      get().removeFromCart(id);
+      get().removeFromCart(id, selectedColor);
       return;
     }
     set((state) => ({
       cartItems: state.cartItems.map((i) =>
-        i.id === id ? { ...i, quantity } : i
+        i.id === id && i.selectedColor === selectedColor ? { ...i, quantity } : i
       ),
     }));
   },

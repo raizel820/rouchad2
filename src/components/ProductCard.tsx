@@ -35,6 +35,7 @@ export function ProductCard({ product }: ProductCardProps) {
       image: product.image,
       category: product.category,
       quantity: 1,
+      selectedColor: 'default',
     };
     addToCart(cartItem);
     toast(`${product.name} added to cart!`);

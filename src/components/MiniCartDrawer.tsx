@@ -141,9 +141,14 @@ export function MiniCartDrawer({ isOpen, onClose }: MiniCartDrawerProps) {
 
                       {/* Product Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] truncate">
-                          {item.name}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          {item.selectedColor && item.selectedColor !== 'default' && (
+                            <div className="w-4 h-4 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
+                          )}
+                          <h3 className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] truncate">
+                            {item.name}
+                          </h3>
+                        </div>
                         <p className="text-xs text-[#8b6f63]/60 dark:text-[#a89898] mt-0.5">
                           {item.category}
                         </p>
@@ -155,7 +160,7 @@ export function MiniCartDrawer({ isOpen, onClose }: MiniCartDrawerProps) {
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center gap-1 bg-white dark:bg-[#2d1f24] rounded-full border border-[#f5e6e0] dark:border-[#3d2f34]">
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.id, item.quantity - 1, item.selectedColor)}
                               className="p-1.5 hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] rounded-full transition-colors"
                               aria-label="Decrease quantity"
                             >
@@ -165,7 +170,7 @@ export function MiniCartDrawer({ isOpen, onClose }: MiniCartDrawerProps) {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.id, item.quantity + 1, item.selectedColor)}
                               className="p-1.5 hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] rounded-full transition-colors"
                               aria-label="Increase quantity"
                             >
@@ -175,7 +180,7 @@ export function MiniCartDrawer({ isOpen, onClose }: MiniCartDrawerProps) {
 
                           {/* Remove Button */}
                           <button
-                            onClick={() => removeFromCart(item.id)}
+                            onClick={() => removeFromCart(item.id, item.selectedColor)}
                             className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors group"
                             aria-label="Remove item"
                           >

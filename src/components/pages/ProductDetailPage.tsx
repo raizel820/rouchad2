@@ -88,6 +88,10 @@ export function ProductDetailPage() {
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
 
+  // Color selector state
+  const [selectedColor, setSelectedColor] = useState('');
+  const [availableColors, setAvailableColors] = useState<string[]>([]);
+
   // Zoom on hover state
   const [isZooming, setIsZooming] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
@@ -120,6 +124,10 @@ export function ProductDetailPage() {
         setProduct(productData);
         setReviews(reviewsData);
         addRecentlyViewed(productData);
+        // Parse colors from JSON
+        const colorsArr = productData.colors ? JSON.parse(productData.colors) : [];
+        setAvailableColors(colorsArr);
+        if (colorsArr.length > 0) setSelectedColor(colorsArr[0]);
         return fetch(`/api/products?category=${productData.category}`);
       })
       .then((r) => r?.json())
@@ -158,6 +166,7 @@ export function ProductDetailPage() {
           image: product.image,
           category: product.category,
           quantity: 1,
+          selectedColor: selectedColor || 'default',
         };
         addToCart(cartItem);
       }
@@ -166,7 +175,7 @@ export function ProductDetailPage() {
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
     }, 600);
-  }, [product, quantity, addToCart]);
+  }, [product, quantity, addToCart, selectedColor]);
 
   const handleBuyNow = useCallback(() => {
     if (!product) return;
@@ -178,10 +187,11 @@ export function ProductDetailPage() {
       image: product.image,
       category: product.category,
       quantity,
+      selectedColor: selectedColor || 'default',
     };
     addToCart(cartItem);
     navigate('checkout');
-  }, [product, quantity, addToCart, navigate]);
+  }, [product, quantity, addToCart, navigate, selectedColor]);
 
   const handleWishlistToggle = async () => {
     if (!isAuthenticated || !user || !product) {
@@ -452,6 +462,38 @@ export function ProductDetailPage() {
             <span className={`w-2.5 h-2.5 rounded-full ${stockStatus.dotColor} ${isOutOfStock ? '' : 'animate-pulse'}`} />
             <span className={`text-sm font-medium ${stockStatus.color}`}>{stockStatus.text}</span>
           </div>
+
+          {/* Color Selector */}
+          {availableColors.length > 0 && (
+            <motion.div
+              className="mb-6"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm font-medium text-[#8b6f63] dark:text-[#e8d5cf]">Color:</span>
+                <span className="text-sm text-[#d4a5a5] dark:text-[#e8a5a5] font-medium">{selectedColor}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                {availableColors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setSelectedColor(color)}
+                    className={`w-10 h-10 rounded-full border-2 transition-all duration-200 hover:scale-110 ${
+                      selectedColor === color
+                        ? 'border-[#8b6f63] scale-110 shadow-md ring-2 ring-[#8b6f63]/20'
+                        : 'border-gray-200 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-400'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                    aria-label={`Select color ${color}`}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-[#8b6f63]/50 dark:text-[#8b6f63]/40 mt-2">{availableColors.length} colors available</p>
+            </motion.div>
+          )}
 
           {/* Description Preview */}
           <p className="text-[#8b6f63]/70 mb-8 leading-relaxed">{product.description}</p>

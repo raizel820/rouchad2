@@ -10,8 +10,8 @@ const FREE_SHIPPING_THRESHOLD = 50;
 export function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal, navigate, toggleWishlist, isWishlisted } = useStore();
 
-  const handleRemove = (productId: string, productName: string) => {
-    removeFromCart(productId);
+  const handleRemove = (productId: string, productName: string, selectedColor?: string) => {
+    removeFromCart(productId, selectedColor);
     toast(`${productName} removed from cart`);
   };
 
@@ -119,7 +119,12 @@ export function CartPage() {
                         onClick={() => { useStore.getState().setProductId(item.id); navigate('product-detail'); }}
                         className="text-[#8b6f63] dark:text-[#e8ddd5] hover:text-[#d4a5a5] transition-colors font-medium text-left"
                       >
-                        {item.name}
+                        <div className="flex items-center gap-2">
+                          {item.selectedColor && item.selectedColor !== 'default' && (
+                            <div className="w-5 h-5 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
+                          )}
+                          <span className="text-[#8b6f63] dark:text-[#e8ddd5] font-medium">{item.name}</span>
+                        </div>
                       </button>
                       <p className="text-sm text-[#8b6f63]/70 dark:text-[#e8ddd5]/60">{item.category}</p>
                     </div>
@@ -132,7 +137,7 @@ export function CartPage() {
                         <Heart size={18} className={isWishlisted(item.id) ? 'fill-[#d4a5a5] text-[#d4a5a5]' : ''} />
                       </button>
                       <button
-                        onClick={() => handleRemove(item.id, item.name)}
+                        onClick={() => handleRemove(item.id, item.name, item.selectedColor)}
                         className="p-2 text-[#8b6f63]/50 dark:text-[#e8ddd5]/40 hover:text-red-500 transition-colors"
                       >
                         <Trash2 size={18} />
@@ -143,14 +148,14 @@ export function CartPage() {
                   <div className="flex justify-between items-end mt-auto">
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.id, item.quantity - 1, item.selectedColor)}
                         className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#1a1215] text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#f5e6e0] dark:hover:bg-[#3d2f34] transition-colors flex items-center justify-center"
                       >
                         <Minus size={14} />
                       </button>
                       <span className="w-8 text-center text-[#8b6f63] dark:text-[#e8ddd5] font-medium">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.id, item.quantity + 1, item.selectedColor)}
                         className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#1a1215] text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#f5e6e0] dark:hover:bg-[#3d2f34] transition-colors flex items-center justify-center"
                       >
                         <Plus size={14} />

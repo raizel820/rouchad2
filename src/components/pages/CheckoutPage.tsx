@@ -208,7 +208,7 @@ export function CheckoutPage() {
       const nameParts = (user?.name || addrData.name || '').split(' ');
       const orderData = {
         userId: isAuthenticated ? user?.id : 'guest',
-        items: cartItems.map((item) => ({ productId: item.id, quantity: item.quantity, price: item.price })),
+        items: cartItems.map((item) => ({ productId: item.id, quantity: item.quantity, price: item.price, color: item.selectedColor && item.selectedColor !== 'default' ? item.selectedColor : null })),
         firstName: nameParts[0] || addrData.name || '',
         lastName: nameParts.slice(1).join(' ') || '',
         email: user?.email || '',
@@ -733,7 +733,12 @@ export function CheckoutPage() {
                             className="w-14 h-14 rounded-lg object-cover border border-[#f5e6e0]/50"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-[#8b6f63] font-medium truncate">{item.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-[#8b6f63] font-medium truncate">{item.name}</p>
+                              {item.selectedColor && item.selectedColor !== 'default' && (
+                                <div className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} title={item.selectedColor} />
+                              )}
+                            </div>
                             <p className="text-xs text-[#8b6f63]/60">Qty: {item.quantity}</p>
                           </div>
                           <p className="text-sm text-[#8b6f63] font-medium">${(item.price * item.quantity).toFixed(2)}</p>
@@ -776,7 +781,12 @@ export function CheckoutPage() {
               <div className="space-y-3 mb-6 max-h-48 overflow-y-auto">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-[#8b6f63] truncate mr-2">{item.name} x {item.quantity}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#8b6f63] truncate mr-2">{item.name} x {item.quantity}</span>
+                      {item.selectedColor && item.selectedColor !== 'default' && (
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
+                      )}
+                    </div>
                     <span className="text-[#8b6f63] whitespace-nowrap">${(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}

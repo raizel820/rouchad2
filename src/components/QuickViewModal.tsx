@@ -22,6 +22,7 @@ function QuickViewContent({ product, onClose }: { product: Product; onClose: () 
         image: product.image,
         category: product.category,
         quantity: 1,
+        selectedColor: 'default',
       };
       addToCart(cartItem);
     }

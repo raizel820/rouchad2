@@ -72,10 +72,11 @@ export async function POST(request: Request) {
         country,
         trackingNumber,
         orderItems: {
-          create: items.map((item: { productId: string; quantity: number; price: number }) => ({
+          create: items.map((item: { productId: string; quantity: number; price: number; color?: string | null }) => ({
             productId: item.productId,
             quantity: item.quantity,
             price: item.price,
+            color: item.color || null,
           })),
         },
       },

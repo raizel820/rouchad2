@@ -13,7 +13,7 @@ interface Order {
   total: number;
   createdAt: string;
   productId?: string;
-  orderItems: { id: string; quantity: number; price: number; productId: string; product?: { name: string; image: string } }[];
+  orderItems: { id: string; quantity: number; price: number; productId: string; color?: string | null; product?: { name: string; image: string } }[];
 }
 
 interface WishlistProduct {
@@ -429,9 +429,14 @@ export function ProfilePage() {
                               )}
                             </div>
                             <div className="flex-1">
-                              <button onClick={() => { useStore.getState().setProductId(item.productId); navigate('product-detail'); }} className="text-[#8b6f63] hover:text-[#d4a5a5] transition-colors font-medium text-left">
-                                {item.product?.name || 'Product'}
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => { useStore.getState().setProductId(item.productId); navigate('product-detail'); }} className="text-[#8b6f63] hover:text-[#d4a5a5] transition-colors font-medium text-left">
+                                  {item.product?.name || 'Product'}
+                                </button>
+                                {item.color && item.color !== 'default' && (
+                                  <div className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: item.color }} />
+                                )}
+                              </div>
                               <p className="text-sm text-[#8b6f63]/70">Quantity: {item.quantity} × ${item.price.toFixed(2)}</p>
                             </div>
                           </div>
@@ -507,7 +512,7 @@ export function ProfilePage() {
                           <button
                             onClick={() => {
                               const { addToCart } = useStore.getState();
-                              addToCart({ id: product.id, name: product.name, price: product.price, image: product.image, category: product.category, quantity: 1 });
+                              addToCart({ id: product.id, name: product.name, price: product.price, image: product.image, category: product.category, quantity: 1, selectedColor: 'default' });
                               toast(`${product.name} added to cart!`);
                             }}
                             className="flex-1 px-4 py-2 bg-[#d4a5a5] text-white text-sm rounded-full hover:bg-[#c89a9a] transition-colors flex items-center justify-center gap-1.5"
