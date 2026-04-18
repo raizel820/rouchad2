@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useStore } from '@/store/store';
 import { Hero } from '@/components/Hero';
 import { ProductCard } from '@/components/ProductCard';
@@ -18,6 +18,8 @@ import {
   Percent,
   Sparkles,
   Flame,
+  Clock,
+  Tag,
 } from 'lucide-react';
 
 interface Product {
@@ -30,6 +32,33 @@ interface Product {
   badge?: string;
   rating: number;
   reviewCount: number;
+  discountedPrice?: number;
+  effectiveDiscount?: number;
+  savings?: number;
+  saleName?: string | null;
+  onSale?: boolean;
+}
+
+interface SaleCategory {
+  categoryName: string;
+  discountPercentage: number;
+}
+
+interface SaleData {
+  id: string;
+  name: string;
+  description: string | null;
+  endDate: string;
+  categories: SaleCategory[];
+  maxDiscount: number;
+}
+
+interface CountdownTime {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  expired: boolean;
 }
 
 const testimonials = [
@@ -62,17 +91,147 @@ const features = [
 
 const marqueeItems = ['Vogue', 'Elle', 'Allure', 'Harper\'s Bazaar', 'Cosmopolitan', 'Glamour', 'InStyle', 'Marie Claire'];
 
-interface SaleInfo {
-  name: string;
-  maxDiscount: number;
+// Fallback banners used when no active sales exist
+const defaultBanners = [
+  {
+    subtitle: 'COLLECTION',
+    title: 'SALE\n25% OFF',
+    desc: 'On Everything',
+    cat: 'All',
+    gradient: 'from-[#d4a5a5]/90 to-[#c07e6e]/80',
+    image: '/products/blush.png',
+    darkGradient: 'from-[#3d2f34]/95 to-[#2d1f24]/90',
+  },
+  {
+    subtitle: 'SKINCARE',
+    title: 'Get Upto 30% Off\nBest Skincare Picks',
+    desc: 'Natural Beauty',
+    cat: 'Skincare',
+    gradient: 'from-[#a8d8b9]/85 to-[#7ec8a0]/75',
+    image: '/products/moisturizer.png',
+    darkGradient: 'from-[#2d3d2f]/95 to-[#1f2d24]/90',
+  },
+  {
+    subtitle: 'WELLNESS',
+    title: 'Health &\nBeauty Treatments',
+    desc: 'Wellness Range',
+    cat: 'All',
+    gradient: 'from-[#e8b4c8]/85 to-[#d4a5a5]/80',
+    image: '/products/serum.png',
+    darkGradient: 'from-[#3d2f34]/95 to-[#2d1f24]/90',
+  },
+];
+
+const defaultBottomBanners = [
+  {
+    subtitle: 'COLLECTION',
+    title: 'Super Natural Beauty',
+    cat: 'Skincare',
+    image: '/products/moisturizer.png',
+    gradient: 'from-[#a8d8b9]/30 to-[#fef5f1]/60',
+    darkGradient: 'from-[#2d3d2f]/50 to-[#2d1f24]/80',
+  },
+  {
+    subtitle: 'TOP PRODUCT',
+    title: '10% Off\nBody Butter',
+    cat: 'Skincare',
+    image: '/products/body-butter.png',
+    gradient: 'from-[#d4a5a5]/30 to-[#fef5f1]/60',
+    darkGradient: 'from-[#3d2f34]/50 to-[#2d1f24]/80',
+  },
+];
+
+const bannerGradients = [
+  { gradient: 'from-[#d4a5a5]/90 to-[#c07e6e]/80', darkGradient: 'from-[#3d2f34]/95 to-[#2d1f24]/90' },
+  { gradient: 'from-[#a8d8b9]/85 to-[#7ec8a0]/75', darkGradient: 'from-[#2d3d2f]/95 to-[#1f2d24]/90' },
+  { gradient: 'from-[#e8b4c8]/85 to-[#d4a5a5]/80', darkGradient: 'from-[#3d2f34]/95 to-[#2d1f24]/90' },
+  { gradient: 'from-[#f0c8a8]/85 to-[#d4a5a5]/80', darkGradient: 'from-[#3d2f34]/95 to-[#2d1f24]/90' },
+  { gradient: 'from-[#c4b5e8]/85 to-[#a898d4]/80', darkGradient: 'from-[#2d2f3d]/95 to-[#1f242d]/90' },
+];
+
+const categoryImages: Record<string, string> = {
+  Makeup: '/products/blush.png',
+  Skincare: '/products/moisturizer.png',
+  Haircare: '/products/serum.png',
+  Perfume: '/products/perfume-rose.png',
+};
+
+function getCountdown(endDate: string | null): CountdownTime {
+  if (!endDate) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: false };
+  const end = new Date(endDate).getTime();
+  const diff = end - Date.now();
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+    expired: false,
+  };
+}
+
+function useCountdown(endDate: string | null): CountdownTime {
+  const [timeLeft, setTimeLeft] = useState<CountdownTime>(() => getCountdown(endDate));
+  const endDateRef = useRef(endDate);
+
+  useEffect(() => {
+    endDateRef.current = endDate;
+    const id = setInterval(() => {
+      const result = getCountdown(endDateRef.current);
+      setTimeLeft(result);
+      if (result.expired) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [endDate]);
+
+  return timeLeft;
+}
+
+function CountdownTimer({ endDate }: { endDate: string }) {
+  const { days, hours, minutes, seconds, expired } = useCountdown(endDate);
+
+  if (expired) {
+    return (
+      <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-500/15 rounded-full">
+        <span className="text-sm font-semibold text-red-600 dark:text-red-400">Sale Ended</span>
+      </div>
+    );
+  }
+
+  const blocks = [
+    { value: days, label: 'Days' },
+    { value: hours, label: 'Hrs' },
+    { value: minutes, label: 'Min' },
+    { value: seconds, label: 'Sec' },
+  ];
+
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      <Clock size={14} className="text-red-500 mr-1" />
+      {blocks.map((block, i) => (
+        <span key={block.label} className="inline-flex items-center">
+          <span className="inline-flex flex-col items-center justify-center w-10 h-10 bg-white dark:bg-[#2d1f24] rounded-md shadow-sm border border-red-100 dark:border-red-500/20">
+            <span className="text-sm font-bold text-red-600 dark:text-red-400 leading-none">
+              {String(block.value).padStart(2, '0')}
+            </span>
+            <span className="text-[9px] text-[#8b6f63]/60 dark:text-[#e8ddd5]/40 uppercase leading-none mt-0.5">{block.label}</span>
+          </span>
+          {i < blocks.length - 1 && (
+            <span className="text-red-400 font-bold mx-0.5">:</span>
+          )}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export function HomePage() {
   const { navigate, setSelectedCategory, user, isAuthenticated, recentlyViewed, wishlistItems } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [salesData, setSalesData] = useState<SaleData[]>([]);
   const [saleProducts, setSaleProducts] = useState<Product[]>([]);
-  const [saleInfo, setSaleInfo] = useState<SaleInfo[]>([]);
+  const [categoryDiscounts, setCategoryDiscounts] = useState<Record<string, { percentage: number; saleName: string }>>({});
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
 
   // Fetch all products
@@ -91,25 +250,47 @@ export function HomePage() {
     fetch('/api/sales/active')
       .then((r) => r.json())
       .then((data) => {
+        const sales = data.sales || [];
+        const discounts = data.categoryDiscounts || {};
+
+        if (sales.length > 0) {
+          // Build full sale data
+          const fullSales: SaleData[] = sales.map((s: { id: string; name: string; description?: string; endDate: string; categories?: SaleCategory[] }) => {
+            const maxDisc = s.categories && s.categories.length > 0
+              ? Math.max(...s.categories.map((c) => c.discountPercentage))
+              : 0;
+            return {
+              id: s.id,
+              name: s.name || 'Special Offers',
+              description: s.description || null,
+              endDate: s.endDate,
+              categories: s.categories || [],
+              maxDiscount: maxDisc,
+            };
+          });
+          setSalesData(fullSales);
+        }
+
         if (data.products && data.products.length > 0) {
           setSaleProducts(data.products);
-          const sales = data.sales || [];
-          const discounts = data.categoryDiscounts || {};
-          // Build sale info from sales data
-          const infoList: SaleInfo[] = sales.map((s: { name: string; discountPercentage?: number; category?: string }) => ({
-            name: s.name || 'Special Offers',
-            maxDiscount: s.discountPercentage || Object.values(discounts).reduce((max: number, d: unknown) => Math.max(max, typeof d === 'number' ? d : 0), 0),
-          }));
-          // If no sale names found, derive from category discounts
-          if (infoList.length === 0 && Object.keys(discounts).length > 0) {
-            const maxDisc = Math.max(...Object.values(discounts).map((d) => typeof d === 'number' ? d : 0));
-            infoList.push({ name: 'Special Offers', maxDiscount: maxDisc });
-          }
-          setSaleInfo(infoList);
         }
+
+        // Store category discounts for banner use
+        const discMap: Record<string, { percentage: number; saleName: string }> = {};
+        for (const [cat, info] of Object.entries(discounts)) {
+          const d = info as { percentage: number; saleName: string };
+          discMap[cat] = { percentage: d.percentage, saleName: d.saleName };
+        }
+        setCategoryDiscounts(discMap);
       })
       .catch(() => {});
   }, []);
+
+  // Group sale products by saleName
+  const productsBySale = salesData.map((sale) => ({
+    sale,
+    products: saleProducts.filter((p) => p.saleName === sale.name),
+  }));
 
   // Helper to fetch recommended products based on collected IDs
   const fetchRecommendations = (productIds: Set<string>) => {
@@ -189,6 +370,46 @@ export function HomePage() {
   const featuredProducts = products.slice(0, 4);
   const categories = ['Makeup', 'Skincare', 'Haircare', 'Perfume'];
 
+  // Build dynamic promotional banners from sales data
+  const dynamicBanners = salesData.length > 0
+    ? salesData.slice(0, 3).map((sale, idx) => {
+        const firstCat = sale.categories[0];
+        const catName = firstCat ? firstCat.categoryName : 'All';
+        const discount = sale.maxDiscount;
+        const styleIdx = idx % bannerGradients.length;
+        return {
+          subtitle: (firstCat?.categoryName || 'SALE').toUpperCase(),
+          title: `${sale.name}\n${discount}% OFF`,
+          desc: sale.description || `${catName} Collection`,
+          cat: catName,
+          gradient: bannerGradients[styleIdx].gradient,
+          darkGradient: bannerGradients[styleIdx].darkGradient,
+          image: categoryImages[catName] || '/products/blush.png',
+        };
+      })
+    : defaultBanners;
+
+  // Build dynamic bottom banners from sales data
+  const dynamicBottomBanners = salesData.length > 0
+    ? salesData.slice(0, 2).map((sale, idx) => {
+        const firstCat = sale.categories[0];
+        const catName = firstCat ? firstCat.categoryName : 'All';
+        const discount = sale.maxDiscount;
+        return {
+          subtitle: sale.name.toUpperCase(),
+          title: `${discount}% Off\n${catName}`,
+          cat: catName,
+          image: categoryImages[catName] || '/products/blush.png',
+          gradient: idx === 0
+            ? 'from-[#a8d8b9]/30 to-[#fef5f1]/60'
+            : 'from-[#d4a5a5]/30 to-[#fef5f1]/60',
+          darkGradient: idx === 0
+            ? 'from-[#2d3d2f]/50 to-[#2d1f24]/80'
+            : 'from-[#3d2f34]/50 to-[#2d1f24]/80',
+        };
+      })
+    : defaultBottomBanners;
+
   const handleCategoryClick = (cat: string) => {
     setSelectedCategory(cat);
     navigate('products');
@@ -217,38 +438,10 @@ export function HomePage() {
     <div>
       <Hero />
 
-      {/* Promotional Banners */}
+      {/* Promotional Banners — Dynamic based on active sales */}
       <section className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            {
-              subtitle: 'COLLECTION',
-              title: 'SALE\n25% OFF',
-              desc: 'On Everything',
-              cat: 'All',
-              gradient: 'from-[#d4a5a5]/90 to-[#c07e6e]/80',
-              image: '/products/blush.png',
-              darkGradient: 'from-[#3d2f34]/95 to-[#2d1f24]/90',
-            },
-            {
-              subtitle: 'SKINCARE',
-              title: 'Get Upto 30% Off\nBest Skincare Picks',
-              desc: 'Natural Beauty',
-              cat: 'Skincare',
-              gradient: 'from-[#a8d8b9]/85 to-[#7ec8a0]/75',
-              image: '/products/moisturizer.png',
-              darkGradient: 'from-[#2d3d2f]/95 to-[#1f2d24]/90',
-            },
-            {
-              subtitle: 'WELLNESS',
-              title: 'Health &\nBeauty Treatments',
-              desc: 'Wellness Range',
-              cat: 'All',
-              gradient: 'from-[#e8b4c8]/85 to-[#d4a5a5]/80',
-              image: '/products/serum.png',
-              darkGradient: 'from-[#3d2f34]/95 to-[#2d1f24]/90',
-            },
-          ].map((banner, idx) => (
+          {dynamicBanners.map((banner, idx) => (
             <motion.div
               key={idx}
               className="rounded-xl p-10 relative overflow-hidden cursor-pointer group min-h-[220px] hover:shadow-lg transition-shadow"
@@ -278,63 +471,85 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Special Offers / Sale Section */}
-      {saleProducts.length > 0 && (
-        <section className="container mx-auto px-4 py-12">
-          <motion.div
-            className="text-center mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-500/10 rounded-full mb-4">
-              <Flame size={18} className="text-red-500" />
-              <span className="text-sm font-medium text-red-600 dark:text-red-400">Limited Time</span>
-            </div>
-            <h2 className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
-              {saleInfo.length > 0 && saleInfo[0].name ? saleInfo[0].name : 'Special Offers'}
-            </h2>
-            <motion.div
-              className="h-[2px] bg-gradient-to-r from-transparent via-red-400 to-transparent mx-auto mt-4 mb-3"
-              initial={{ width: 0 }}
-              whileInView={{ width: '60%' }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-            />
-            {/* Sale badges showing discount percentages */}
-            <div className="flex flex-wrap justify-center gap-3 mt-4">
-              {saleInfo.map((info, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm rounded-full font-medium shadow-sm"
-                >
-                  <Percent size={14} />
-                  Up to {info.maxDiscount}% OFF
-                </span>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Horizontal scrollable product list */}
-          <div className="relative">
-            <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin">
-              {saleProducts.map((product, idx) => (
+      {/* Sale Sections — One per active sale with countdown, description, and category discounts */}
+      {productsBySale.length > 0 && productsBySale.some((g) => g.products.length > 0) && (
+        <section className="py-12">
+          <div className="container mx-auto px-4 space-y-16">
+            {productsBySale.map((group, saleIdx) => {
+              if (group.products.length === 0) return null;
+              return (
                 <motion.div
-                  key={product.id}
-                  className="flex-shrink-0 w-[220px] sm:w-[240px] snap-start"
-                  initial={{ opacity: 0, x: 30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  key={group.sale.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.08 * idx }}
+                  transition={{ duration: 0.6 }}
                 >
-                  <ProductCard product={product} />
+                  {/* Sale header */}
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-500/10 rounded-full mb-4">
+                      <Flame size={18} className="text-red-500" />
+                      <span className="text-sm font-medium text-red-600 dark:text-red-400">Limited Time</span>
+                    </div>
+                    <h2 className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
+                      {group.sale.name}
+                    </h2>
+                    {/* Sale description */}
+                    {group.sale.description && (
+                      <p className="text-sm text-[#8b6f63]/70 dark:text-[#e8ddd5]/50 max-w-lg mx-auto mb-4">
+                        {group.sale.description}
+                      </p>
+                    )}
+                    <motion.div
+                      className="h-[2px] bg-gradient-to-r from-transparent via-red-400 to-transparent mx-auto mt-2 mb-4"
+                      initial={{ width: 0 }}
+                      whileInView={{ width: '60%' }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                    />
+                    {/* Countdown timer */}
+                    <div className="flex justify-center mt-4 mb-5">
+                      <CountdownTimer endDate={group.sale.endDate} />
+                    </div>
+                    {/* Category-specific discount badges */}
+                    {group.sale.categories.length > 0 && (
+                      <div className="flex flex-wrap justify-center gap-2.5 mt-3">
+                        {group.sale.categories.map((cat, catIdx) => (
+                          <span
+                            key={catIdx}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm rounded-full font-medium shadow-sm"
+                          >
+                            <Tag size={13} />
+                            {cat.categoryName} {cat.discountPercentage}% off
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sale product list — horizontal scroll */}
+                  <div className="relative">
+                    <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin">
+                      {group.products.map((product, idx) => (
+                        <motion.div
+                          key={product.id}
+                          className="flex-shrink-0 w-[220px] sm:w-[240px] snap-start"
+                          initial={{ opacity: 0, x: 30 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.4, delay: 0.08 * idx }}
+                        >
+                          <ProductCard product={product} />
+                        </motion.div>
+                      ))}
+                    </div>
+                    {/* Fade edges */}
+                    <div className="absolute top-0 left-0 w-8 h-full bg-gradient-to-r from-[#fef5f1] dark:from-[#0a080a] to-transparent pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-[#fef5f1] dark:from-[#0a080a] to-transparent pointer-events-none" />
+                  </div>
                 </motion.div>
-              ))}
-            </div>
-            {/* Fade edges */}
-            <div className="absolute top-0 left-0 w-8 h-full bg-gradient-to-r from-[#fef5f1] dark:from-[#0a080a] to-transparent pointer-events-none" />
-            <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-[#fef5f1] dark:from-[#0a080a] to-transparent pointer-events-none" />
+              );
+            })}
           </div>
         </section>
       )}
@@ -342,10 +557,11 @@ export function HomePage() {
       {/* Featured Products */}
       <section className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Glow Naturally with Rare Beauty</h2>
+          <h2 className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-1">Glow Naturally with Rare Beauty</h2>
+          <p className="text-sm text-[#d4a5a5] font-medium mb-3">Best Sellers · Customer Favorites</p>
           {/* Animated decorative divider */}
           <motion.div
-            className="h-[2px] bg-gradient-to-r from-transparent via-[#d4a5a5] to-transparent mx-auto mt-4 mb-3"
+            className="h-[2px] bg-gradient-to-r from-transparent via-[#d4a5a5] to-transparent mx-auto mt-2 mb-3"
             initial={{ width: 0 }}
             whileInView={{ width: '80%' }}
             viewport={{ once: true }}
@@ -380,6 +596,13 @@ export function HomePage() {
               transition={{ delay: 0.05 * idx }}
             >
               <ProductCard product={product} />
+              {/* Small review count underneath */}
+              <div className="flex items-center justify-center gap-1 mt-2">
+                <Star size={12} className="fill-[#d4a5a5] text-[#d4a5a5]" />
+                <span className="text-xs text-[#8b6f63]/60 dark:text-[#e8ddd5]/40">
+                  {product.rating} · {product.reviewCount} {product.reviewCount === 1 ? 'review' : 'reviews'}
+                </span>
+              </div>
             </motion.div>
           ))}
         </div>
@@ -395,27 +618,10 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Bottom Banners */}
+      {/* Bottom Banners — Dynamic based on active sales */}
       <section className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[
-            {
-              subtitle: 'COLLECTION',
-              title: 'Super Natural Beauty',
-              cat: 'Skincare',
-              image: '/products/moisturizer.png',
-              gradient: 'from-[#a8d8b9]/30 to-[#fef5f1]/60',
-              darkGradient: 'from-[#2d3d2f]/50 to-[#2d1f24]/80',
-            },
-            {
-              subtitle: 'TOP PRODUCT',
-              title: '10% Off\nBody Butter',
-              cat: 'Skincare',
-              image: '/products/body-butter.png',
-              gradient: 'from-[#d4a5a5]/30 to-[#fef5f1]/60',
-              darkGradient: 'from-[#3d2f34]/50 to-[#2d1f24]/80',
-            },
-          ].map((banner, idx) => (
+          {dynamicBottomBanners.map((banner, idx) => (
             <motion.div
               key={idx}
               className="rounded-xl p-8 flex items-center gap-6 hover:shadow-lg transition-shadow cursor-pointer relative overflow-hidden bg-[#fef5f1] dark:bg-[#2d1f24]"

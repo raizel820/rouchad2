@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useStore, type CartItem } from '@/store/store';
 import { toast } from '@/lib/toast';
 import {
   Star, ShoppingBag, Heart, Share2, ArrowLeft, Send,
-  ChevronLeft, ChevronRight, Minus, Plus, Check,
+  ChevronLeft, ChevronRight, ChevronDown, Minus, Plus, Check,
   Facebook, Twitter, Truck, RotateCcw, Shield, Clock,
-  Package, Droplets, Leaf,
+  Package, Droplets, Leaf, ThumbsUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/ProductCard';
@@ -88,6 +88,9 @@ export function ProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Review sort state
+  const [reviewSortOrder, setReviewSortOrder] = useState<'recent' | 'highest' | 'lowest'>('recent');
 
   // Add to cart state
   const [addingToCart, setAddingToCart] = useState(false);
@@ -292,6 +295,36 @@ export function ProductDetailPage() {
 
   const stockStatus = getStockStatus();
   const isOutOfStock = product?.stock !== undefined && product.stock <= 0;
+
+  const formatRelativeDate = (dateStr: string) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    }
+    if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      if (months < 2) return 'Last month';
+      return `${months} months ago`;
+    }
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const AVATAR_COLORS = ['#d4a5a5', '#8b6f63', '#c89a9a', '#a0845e', '#b08968', '#d4a574', '#9c8468', '#c4917a'];
+
+  const sortedReviews = useMemo(() => {
+    const sorted = [...reviews];
+    if (reviewSortOrder === 'highest') sorted.sort((a, b) => b.rating - a.rating || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    else if (reviewSortOrder === 'lowest') sorted.sort((a, b) => a.rating - b.rating || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    else sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return sorted.slice(0, 8);
+  }, [reviews, reviewSortOrder]);
 
   if (loading) {
     return <ProductDetailSkeleton />;
@@ -826,113 +859,234 @@ export function ProductDetailPage() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <h3 className="text-lg font-serif text-[#8b6f63] mb-6">Customer Reviews ({reviews.length})</h3>
-
-              {/* Existing Reviews */}
-              {reviews.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mb-10">
-                  {reviews.slice(0, 8).map((review, index) => (
-                    <motion.div
-                      key={review.id}
-                      className="bg-white rounded-xl p-6 shadow-sm border border-[#f5e6e0]/50"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <div className="flex items-center gap-1 mb-2">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} size={14} className={i < review.rating ? 'fill-[#d4a5a5] text-[#d4a5a5]' : 'text-[#8b6f63]/20'} />
-                        ))}
-                      </div>
-                      <p className="text-sm text-[#8b6f63]/70 mb-3 leading-relaxed">{review.comment || 'Great product!'}</p>
-                      <p className="text-xs text-[#8b6f63]/40">{review.user.name} • {new Date(review.createdAt).toLocaleDateString()}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {reviews.length === 0 && (
-                <p className="text-[#8b6f63]/50 mb-10">No reviews yet. Be the first to share your experience!</p>
-              )}
-
-              {/* Review Submission Form */}
-              {isAuthenticated ? (
-                <motion.div
-                  className="max-w-2xl bg-white rounded-xl p-6 shadow-sm border border-[#f5e6e0]/50"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <h4 className="text-lg font-medium text-[#8b6f63] mb-4">Write a Review</h4>
-                  <form onSubmit={handleSubmitReview} className="space-y-4">
-                    <div>
-                      <label className="block text-sm text-[#8b6f63]/70 mb-2">Your Rating</label>
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            type="button"
-                            onClick={() => setReviewRating(star)}
-                            className="p-1 transition-transform hover:scale-110 active:scale-95"
-                            aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
-                          >
+              <div className="max-w-4xl">
+                {/* Rating Distribution Chart */}
+                {reviews.length > 0 && (
+                  <motion.div
+                    className="flex flex-col sm:flex-row gap-6 bg-[#fef5f1] rounded-2xl p-6 mb-8 border border-[#f5e6e0]/50"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                  >
+                    {/* Average Rating Summary */}
+                    <div className="flex flex-col items-center justify-center min-w-[140px] sm:border-r sm:border-[#d4a5a5]/20 sm:pr-6">
+                      <span className="text-5xl font-bold text-[#8b6f63]">
+                        {reviews.length > 0
+                          ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+                          : '0.0'}
+                      </span>
+                      <div className="flex items-center gap-0.5 my-2">
+                        {[...Array(5)].map((_, i) => {
+                          const avg = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+                          return (
                             <Star
-                              size={24}
+                              key={i}
+                              size={16}
                               className={
-                                star <= reviewRating
+                                i < Math.floor(avg)
                                   ? 'fill-[#d4a5a5] text-[#d4a5a5]'
-                                  : 'text-[#8b6f63]/20 hover:text-[#8b6f63]/40'
+                                  : i < avg
+                                    ? 'fill-[#d4a5a5]/50 text-[#d4a5a5]'
+                                    : 'text-[#8b6f63]/20'
                               }
                             />
-                          </button>
-                        ))}
-                        {reviewRating > 0 && (
-                          <span className="ml-2 text-sm text-[#8b6f63]/70">
-                            {reviewRating === 1 ? 'Poor' : reviewRating === 2 ? 'Fair' : reviewRating === 3 ? 'Good' : reviewRating === 4 ? 'Very Good' : 'Excellent'}
-                          </span>
-                        )}
+                          );
+                        })}
+                      </div>
+                      <span className="text-sm text-[#8b6f63]/50">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+                    </div>
+
+                    {/* Rating Breakdown Bars */}
+                    <div className="flex-1 space-y-2">
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        const count = reviews.filter((r) => r.rating === star).length;
+                        const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                        return (
+                          <div key={star} className="flex items-center gap-3">
+                            <span className="text-sm text-[#8b6f63]/70 w-12 text-right flex items-center justify-end gap-1">
+                              {star}
+                              <Star size={12} className="fill-[#d4a5a5] text-[#d4a5a5]" />
+                            </span>
+                            <div className="flex-1 h-2.5 bg-white rounded-full overflow-hidden">
+                              <motion.div
+                                className="h-full bg-[#d4a5a5] rounded-full"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percentage}%` }}
+                                transition={{ duration: 0.6, delay: 0.1 + (5 - star) * 0.08, ease: 'easeOut' }}
+                              />
+                            </div>
+                            <span className="text-xs text-[#8b6f63]/50 w-8 text-right">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+
+                <h3 className="text-lg font-serif text-[#8b6f63] mb-6">Customer Reviews ({reviews.length})</h3>
+
+                {/* Sort Dropdown + Reviews */}
+                {reviews.length > 0 && (
+                  <>
+                    <div className="flex items-center justify-between mb-6">
+                      <span className="text-sm text-[#8b6f63]/60">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+                      <div className="relative">
+                        <select
+                          value={reviewSortOrder}
+                          onChange={(e) => setReviewSortOrder(e.target.value as 'recent' | 'highest' | 'lowest')}
+                          className="appearance-none text-sm text-[#8b6f63] bg-white border border-[#f5e6e0] rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]/50 focus:border-[#d4a5a5] cursor-pointer transition-all"
+                        >
+                          <option value="recent">Most Recent</option>
+                          <option value="highest">Highest Rated</option>
+                          <option value="lowest">Lowest Rated</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8b6f63]/40 pointer-events-none" />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm text-[#8b6f63]/70 mb-2">Your Review</label>
-                      <textarea
-                        value={reviewComment}
-                        onChange={(e) => setReviewComment(e.target.value)}
-                        placeholder="Share your thoughts about this product..."
-                        rows={4}
-                        className="w-full px-4 py-3 rounded-xl border border-[#f5e6e0] bg-[#fef5f1] text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]/50 focus:border-[#d4a5a5] resize-none transition-all"
-                      />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+                      {sortedReviews.map((review, index) => {
+                        const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length];
+                        const initial = (review.user.name || 'U').charAt(0).toUpperCase();
+                        const isLightBg = index % 2 === 1;
+
+                        return (
+                          <motion.div
+                            key={review.id}
+                            className={`rounded-xl p-6 shadow-sm border border-[#f5e6e0]/50 transition-colors ${isLightBg ? 'bg-[#fff8f6]' : 'bg-white'}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.04 }}
+                            whileHover={{ y: -2 }}
+                          >
+                            {/* Header: Avatar + Name + Verified Badge + Date */}
+                            <div className="flex items-start gap-3 mb-3">
+                              <div
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
+                                style={{ backgroundColor: avatarColor }}
+                              >
+                                {initial}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-medium text-[#8b6f63] truncate">{review.user.name}</span>
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-medium rounded-full border border-green-200">
+                                    <Check size={10} className="text-green-500" />
+                                    Verified Purchase
+                                  </span>
+                                </div>
+                                <span className="text-xs text-[#8b6f63]/40">{formatRelativeDate(review.createdAt)}</span>
+                              </div>
+                            </div>
+
+                            {/* Rating Stars */}
+                            <div className="flex items-center gap-1 mb-2">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} size={14} className={i < review.rating ? 'fill-[#d4a5a5] text-[#d4a5a5]' : 'text-[#8b6f63]/20'} />
+                              ))}
+                            </div>
+
+                            {/* Comment */}
+                            <p className="text-sm text-[#8b6f63]/70 mb-3 leading-relaxed">{review.comment || 'Great product!'}</p>
+
+                            {/* Helpful Button */}
+                            <button
+                              className="inline-flex items-center gap-1.5 text-xs text-[#8b6f63]/40 hover:text-[#d4a5a5] transition-colors group"
+                              onClick={() => toast('Thanks for your feedback!')}
+                            >
+                              <ThumbsUp size={13} className="group-hover:fill-[#d4a5a5]/20 transition-colors" />
+                              Helpful
+                            </button>
+                          </motion.div>
+                        );
+                      })}
                     </div>
-                    <button
-                      type="submit"
-                      disabled={submittingReview || reviewRating === 0}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#d4a5a5]"
-                    >
-                      {submittingReview ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <Send size={16} />
-                          Submit Review
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </motion.div>
-              ) : (
-                <div className="max-w-2xl bg-[#fef5f1] rounded-xl p-6 border border-[#f5e6e0] text-center">
-                  <p className="text-[#8b6f63]/70 mb-3">Please log in to write a review.</p>
-                  <button
-                    onClick={() => navigate('login')}
-                    className="inline-block px-6 py-2 bg-[#d4a5a5] text-white text-sm rounded-full hover:bg-[#c89a9a] transition-all"
+                  </>
+                )}
+
+                {reviews.length === 0 && (
+                  <p className="text-[#8b6f63]/50 mb-10">No reviews yet. Be the first to share your experience!</p>
+                )}
+
+                {/* Review Submission Form */}
+                {isAuthenticated ? (
+                  <motion.div
+                    className="max-w-2xl bg-white rounded-xl p-6 shadow-sm border border-[#f5e6e0]/50"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
                   >
-                    Log In
-                  </button>
-                </div>
-              )}
+                    <h4 className="text-lg font-medium text-[#8b6f63] mb-4">Write a Review</h4>
+                    <form onSubmit={handleSubmitReview} className="space-y-4">
+                      <div>
+                        <label className="block text-sm text-[#8b6f63]/70 mb-2">Your Rating</label>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setReviewRating(star)}
+                              className="p-1 transition-transform hover:scale-110 active:scale-95"
+                              aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+                            >
+                              <Star
+                                size={24}
+                                className={
+                                  star <= reviewRating
+                                    ? 'fill-[#d4a5a5] text-[#d4a5a5]'
+                                    : 'text-[#8b6f63]/20 hover:text-[#8b6f63]/40'
+                                }
+                              />
+                            </button>
+                          ))}
+                          {reviewRating > 0 && (
+                            <span className="ml-2 text-sm text-[#8b6f63]/70">
+                              {reviewRating === 1 ? 'Poor' : reviewRating === 2 ? 'Fair' : reviewRating === 3 ? 'Good' : reviewRating === 4 ? 'Very Good' : 'Excellent'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-[#8b6f63]/70 mb-2">Your Review</label>
+                        <textarea
+                          value={reviewComment}
+                          onChange={(e) => setReviewComment(e.target.value)}
+                          placeholder="Share your thoughts about this product..."
+                          rows={4}
+                          className="w-full px-4 py-3 rounded-xl border border-[#f5e6e0] bg-[#fef5f1] text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]/50 focus:border-[#d4a5a5] resize-none transition-all"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={submittingReview || reviewRating === 0}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#d4a5a5]"
+                      >
+                        {submittingReview ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send size={16} />
+                            Submit Review
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </motion.div>
+                ) : (
+                  <div className="max-w-2xl bg-[#fef5f1] rounded-xl p-6 border border-[#f5e6e0] text-center">
+                    <p className="text-[#8b6f63]/70 mb-3">Please log in to write a review.</p>
+                    <button
+                      onClick={() => navigate('login')}
+                      className="inline-block px-6 py-2 bg-[#d4a5a5] text-white text-sm rounded-full hover:bg-[#c89a9a] transition-all"
+                    >
+                      Log In
+                    </button>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
 

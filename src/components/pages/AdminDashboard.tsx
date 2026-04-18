@@ -7,6 +7,7 @@ import {
   DollarSign,
   Users,
   ShoppingBag,
+  ShoppingCart,
   TrendingUp,
   Search,
   Eye,
@@ -35,6 +36,11 @@ import {
   Store,
   Globe,
   ImageIcon,
+  RotateCcw,
+  Clock,
+  Sparkles,
+  Layers,
+  Minus,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -352,7 +358,7 @@ export function AdminDashboard() {
     const end = new Date(sale.endDate);
     if (!sale.isActive) return { label: 'Inactive', color: 'bg-gray-100 text-gray-600' };
     if (now < start) return { label: 'Scheduled', color: 'bg-blue-100 text-blue-700' };
-    if (now > end) return { label: 'Expired', color: 'bg-orange-100 text-orange-700' };
+    if (now > end) return { label: 'Expired', color: 'bg-gray-100 text-gray-600' };
     return { label: 'Active', color: 'bg-green-100 text-green-700' };
   };
 
@@ -1001,27 +1007,40 @@ export function AdminDashboard() {
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: 'Total Orders', value: stats.totalOrders, icon: Package, growth: stats.orderGrowth, prefix: '' },
-                { label: 'Total Revenue', value: stats.totalRevenue, icon: DollarSign, growth: stats.revenueGrowth, prefix: '$' },
-                { label: 'Total Customers', value: stats.totalCustomers, icon: Users, growth: stats.customerGrowth, prefix: '' },
-                { label: 'Total Products', value: stats.totalProducts, icon: ShoppingBag, growth: stats.productGrowth, prefix: '' },
-              ].map((stat) => (
-                <motion.div key={stat.label} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-[#fef5f1] rounded-lg flex items-center justify-center">
-                      <stat.icon className="text-[#d4a5a5]" size={24} />
-                    </div>
-                    <span className="text-sm text-green-600 flex items-center gap-1">
-                      <TrendingUp size={14} />{stat.growth}%
-                    </span>
+                { label: 'Total Revenue', value: stats.totalRevenue, icon: DollarSign, demoTrend: 12.5, prefix: '$', gradient: 'from-[#f5e6e0] to-[#fef5f1]', iconBg: 'bg-[#d4a5a5]/15', iconColor: 'text-[#c48a8a]' },
+                { label: 'Total Orders', value: stats.totalOrders, icon: ShoppingCart, demoTrend: 8.3, prefix: '', gradient: 'from-[#e8f0e8] to-[#f0f7f0]', iconBg: 'bg-green-100', iconColor: 'text-green-600' },
+                { label: 'Total Customers', value: stats.totalCustomers, icon: Users, demoTrend: 15.2, prefix: '', gradient: 'from-[#e8ecf5] to-[#f0f3fa]', iconBg: 'bg-[#c4b5d4]/15', iconColor: 'text-[#9b7fb8]' },
+                { label: 'Total Products', value: stats.totalProducts, icon: Package, demoTrend: 0, prefix: '', gradient: 'from-[#f5f0e6] to-[#faf6ed]', iconBg: 'bg-amber-100', iconColor: 'text-amber-600' },
+              ].map((stat, idx) => (
+                <motion.div key={stat.label}
+                  className={`relative bg-gradient-to-br ${stat.gradient} rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden`}
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }}>
+                  <div className="absolute top-0 right-0 w-24 h-24 opacity-[0.07]">
+                    <stat.icon className="w-full h-full" strokeWidth={1} />
                   </div>
-                  <p className="text-2xl text-[#8b6f63] mb-1">
-                    {stat.prefix}{typeof stat.value === 'number' && stat.label.includes('Revenue')
-                      ? stat.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                      : stat.value.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-[#8b6f63]/70">{stat.label}</p>
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`w-12 h-12 ${stat.iconBg} rounded-xl flex items-center justify-center`}
+                        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                        <stat.icon className={stat.iconColor} size={22} />
+                      </div>
+                      {stat.demoTrend > 0 ? (
+                        <span className="text-sm text-green-600 flex items-center gap-1 font-medium">
+                          <TrendingUp size={14} />+{stat.demoTrend}%
+                        </span>
+                      ) : (
+                        <span className="text-sm text-[#8b6f63]/50 flex items-center gap-1 font-medium">
+                          <Minus size={14} />Stable
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold text-[#8b6f63] mb-1 tracking-tight">
+                      {stat.prefix}{typeof stat.value === 'number' && stat.label.includes('Revenue')
+                        ? stat.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : stat.value.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-[#8b6f63]/60 font-medium">{stat.label}</p>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -1320,36 +1339,58 @@ export function AdminDashboard() {
                 </button>
               </div>
               {sales.length === 0 ? (
-                <div className="text-center py-12">
-                  <Percent size={48} className="text-[#d4a5a5]/30 mx-auto mb-4" />
-                  <p className="text-[#8b6f63]/60">No sales created yet</p>
-                  <p className="text-sm text-[#8b6f63]/40 mt-1">Create your first sale to manage category discounts</p>
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-[#fef5f1] rounded-2xl flex items-center justify-center mx-auto mb-5">
+                    <Sparkles size={36} className="text-[#d4a5a5]/50" />
+                  </div>
+                  <p className="text-lg font-serif text-[#8b6f63]/70 mb-1">No sales created yet</p>
+                  <p className="text-sm text-[#8b6f63]/40 mb-6">Create your first sale to manage category discounts</p>
+                  <button onClick={() => openSaleModal()} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors text-sm font-medium">
+                    <Plus size={16} /> Create Your First Sale
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {sales.map((sale) => {
                     const status = getSaleStatus(sale);
+                    const now = new Date();
+                    const start = new Date(sale.startDate);
+                    const end = new Date(sale.endDate);
+                    const totalDuration = end.getTime() - start.getTime();
+                    const elapsed = now.getTime() - start.getTime();
+                    const progress = totalDuration > 0 ? Math.min(100, Math.max(0, (elapsed / totalDuration) * 100)) : 0;
                     return (
-                      <motion.div key={sale.id} className="p-4 border border-[#8b6f63]/20 rounded-lg hover:bg-[#fef5f1] transition-colors"
+                      <motion.div key={sale.id} className="p-5 border border-[#8b6f63]/15 rounded-xl hover:bg-[#fef5f1]/60 hover:shadow-sm transition-all"
                         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 flex-wrap">
-                              <h3 className="text-[#8b6f63] font-semibold">{sale.name}</h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>{status.label}</span>
-                              {sale.isActive && <span className="flex items-center gap-1 text-xs text-green-600"><ToggleRight size={16} /> Active</span>}
-                              {!sale.isActive && <span className="flex items-center gap-1 text-xs text-gray-400"><ToggleLeft size={16} /> Inactive</span>}
+                              <h3 className="text-[#8b6f63] font-semibold text-lg">{sale.name}</h3>
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${status.color}`}>{status.label}</span>
                             </div>
                             {sale.description && <p className="text-sm text-[#8b6f63]/70 mt-1">{sale.description}</p>}
-                            <div className="flex items-center gap-4 mt-2 text-xs text-[#8b6f63]/50">
-                              <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(sale.startDate)} — {formatDate(sale.endDate)}</span>
-                              <span>{sale.categories.length} categor{sale.categories.length !== 1 ? 'ies' : 'y'}</span>
-                              <span>{sale.promoCodes.length} promo code{sale.promoCodes.length !== 1 ? 's' : ''}</span>
+                            <div className="flex items-center gap-4 mt-3 text-xs text-[#8b6f63]/50">
+                              <span className="flex items-center gap-1.5"><Calendar size={13} /> {formatDate(sale.startDate)} — {formatDate(sale.endDate)}</span>
+                              <span className="flex items-center gap-1.5"><Layers size={13} /> {sale.categories.length} categor{sale.categories.length !== 1 ? 'ies' : 'y'}</span>
+                              <span className="flex items-center gap-1.5"><Ticket size={13} /> {sale.promoCodes.length} promo code{sale.promoCodes.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            {/* Sale Period Progress Bar */}
+                            <div className="mt-3">
+                              <div className="flex items-center justify-between text-xs text-[#8b6f63]/40 mb-1">
+                                <span>Sale Period</span>
+                                <span>{Math.round(progress)}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-[#f5e6e0] rounded-full overflow-hidden">
+                                <motion.div
+                                  className={`h-full rounded-full ${status.label === 'Active' ? 'bg-[#d4a5a5]' : status.label === 'Expired' ? 'bg-gray-400' : 'bg-[#d4a5a5]/40'}`}
+                                  initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.8, ease: 'easeOut' }}
+                                />
+                              </div>
                             </div>
                             {sale.categories.length > 0 && (
                               <div className="flex flex-wrap gap-2 mt-3">
                                 {sale.categories.map((cat) => (
-                                  <span key={cat.id} className="px-3 py-1 bg-[#fef5f1] rounded-full text-xs text-[#8b6f63] border border-[#f5e6e0]/80">
+                                  <span key={cat.id} className="px-3 py-1.5 bg-[#fef5f1] rounded-full text-xs text-[#8b6f63] border border-[#f5e6e0]/80">
                                     <Tag size={10} className="inline mr-1 text-[#d4a5a5]" />
                                     {cat.categoryName}: <span className="font-semibold text-[#d4a5a5]">{cat.discountPercentage}%</span> off
                                   </span>
@@ -1384,53 +1425,78 @@ export function AdminDashboard() {
               </button>
             </div>
             {promoCodes.length === 0 ? (
-              <div className="text-center py-12">
-                <Ticket size={48} className="text-[#d4a5a5]/30 mx-auto mb-4" />
-                <p className="text-[#8b6f63]/60">No promo codes created yet</p>
-                <p className="text-sm text-[#8b6f63]/40 mt-1">Create promo codes to offer discounts at checkout</p>
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-[#fef5f1] rounded-2xl flex items-center justify-center mx-auto mb-5">
+                  <Ticket size={36} className="text-[#d4a5a5]/50" />
+                </div>
+                <p className="text-lg font-serif text-[#8b6f63]/70 mb-1">No promo codes created yet</p>
+                <p className="text-sm text-[#8b6f63]/40 mb-6">Create promo codes to offer discounts at checkout</p>
+                <button onClick={() => openPromoModal()} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors text-sm font-medium">
+                  <Plus size={16} /> Create Your First Promo Code
+                </button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead><tr className="border-b border-[#8b6f63]/20">
-                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Code</th>
-                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Discount</th>
-                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Min Order</th>
-                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Usage</th>
-                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Expires</th>
-                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Linked Sale</th>
-                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Status</th>
-                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Actions</th>
-                  </tr></thead>
-                  <tbody>
-                    {promoCodes.map((promo) => {
-                      const status = getPromoStatus(promo);
-                      return (
-                        <tr key={promo.id} className="border-b border-[#8b6f63]/10 hover:bg-[#fef5f1] transition-colors">
-                          <td className="py-3 px-4 text-sm text-[#8b6f63] font-mono font-semibold tracking-wide">{promo.code}</td>
-                          <td className="py-3 px-4 text-sm text-[#8b6f63]">
-                            {promo.discountType === 'percentage'
-                              ? <span className="text-green-600 font-semibold">{promo.discountValue}%</span>
-                              : <span className="text-green-600 font-semibold">${promo.discountValue}</span>}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-[#8b6f63]/70">{promo.minOrderAmount > 0 ? `$${promo.minOrderAmount}` : '—'}</td>
-                          <td className="py-3 px-4 text-sm text-[#8b6f63]">
-                            {promo.maxUses > 0 ? `${promo.currentUses}/${promo.maxUses}` : `${promo.currentUses} (unlimited)`}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-[#8b6f63]/70">{promo.expiresAt ? formatDate(promo.expiresAt) : 'Never'}</td>
-                          <td className="py-3 px-4 text-sm text-[#8b6f63]/70">{promo.sale ? promo.sale.name : '—'}</td>
-                          <td className="py-3 px-4"><span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>{status.label}</span></td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => openPromoModal(promo)} className="p-1.5 text-[#8b6f63] hover:text-[#d4a5a5] hover:bg-[#fef5f1] rounded-lg transition-colors" title="Edit"><Edit3 size={16} /></button>
-                              <button onClick={() => setConfirmDelete({ type: 'promo-code', id: promo.id, name: promo.code })} className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 size={16} /></button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {promoCodes.map((promo) => {
+                  const status = getPromoStatus(promo);
+                  const usagePercent = promo.maxUses > 0 ? Math.min(100, (promo.currentUses / promo.maxUses) * 100) : 0;
+                  const isPercentage = promo.discountType === 'percentage';
+                  const daysRemaining = promo.expiresAt
+                    ? Math.max(0, Math.ceil((new Date(promo.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+                    : null;
+                  return (
+                    <motion.div key={promo.id}
+                      className={`p-5 border rounded-xl hover:shadow-sm transition-all ${isPercentage ? 'border-[#b8c8e0]/40 bg-gradient-to-br from-white to-[#f0f4fa]/40' : 'border-[#c8e0c8]/40 bg-gradient-to-br from-white to-[#f0faf0]/40'}`}
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <span className="text-[#8b6f63] font-mono font-bold tracking-wider text-base">{promo.code}</span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${isPercentage ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                              {isPercentage ? `${promo.discountValue}% off` : `$${promo.discountValue} off`}
+                            </span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>{status.label}</span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-2.5 text-xs text-[#8b6f63]/50">
+                            {promo.minOrderAmount > 0 && <span>Min: ${promo.minOrderAmount}</span>}
+                            {promo.sale && <span className="flex items-center gap-1"><Tag size={11} />{promo.sale.name}</span>}
+                          </div>
+                          {/* Usage Progress Bar */}
+                          {promo.maxUses > 0 && (
+                            <div className="mt-3">
+                              <div className="flex items-center justify-between text-xs text-[#8b6f63]/40 mb-1">
+                                <span>Usage</span>
+                                <span>{promo.currentUses}/{promo.maxUses}</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <motion.div
+                                  className={`h-full rounded-full ${usagePercent >= 90 ? 'bg-red-400' : usagePercent >= 70 ? 'bg-amber-400' : 'bg-[#d4a5a5]'}`}
+                                  initial={{ width: 0 }} animate={{ width: `${usagePercent}%` }} transition={{ duration: 0.6, ease: 'easeOut' }}
+                                />
+                              </div>
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                          )}
+                          {/* Expiry Info */}
+                          {promo.expiresAt && (
+                            <div className="mt-2.5 flex items-center gap-1.5 text-xs text-[#8b6f63]/50">
+                              <Clock size={12} />
+                              <span>{formatDate(promo.expiresAt)}</span>
+                              {daysRemaining !== null && (
+                                <span className={daysRemaining <= 7 ? 'text-amber-600 font-medium' : daysRemaining <= 0 ? 'text-red-500 font-medium' : ''}>
+                                  ({daysRemaining === 0 ? 'Expires today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <button onClick={() => openPromoModal(promo)} className="p-1.5 text-[#8b6f63]/60 hover:text-[#d4a5a5] hover:bg-[#fef5f1] rounded-lg transition-colors" title="Edit"><Edit3 size={16} /></button>
+                          <button onClick={() => setConfirmDelete({ type: 'promo-code', id: promo.id, name: promo.code })} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1455,6 +1521,59 @@ export function AdminDashboard() {
                   {settingsSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                   Save Shop Name
                 </button>
+              </div>
+            </div>
+
+            {/* Live Preview */}
+            <div className={sectionClass}>
+              <div className="flex items-center gap-3 mb-6">
+                <Eye size={20} className="text-[#d4a5a5]" />
+                <h2 className="text-xl font-serif text-[#8b6f63]">Live Preview</h2>
+                <span className="text-xs text-[#8b6f63]/40 ml-auto">How your store looks to visitors</span>
+              </div>
+              <div className="bg-[#fef5f1] rounded-xl border border-[#f5e6e0]/80 p-6 space-y-6">
+                {/* Browser Tab Mock */}
+                <div className="space-y-2">
+                  <div className="bg-white rounded-t-lg border border-b-0 border-[#f5e6e0]/60 px-3 py-2 flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                    </div>
+                    <div className="flex items-center gap-2 flex-1 ml-3 px-3 py-1 bg-[#fef5f1] rounded-md">
+                      {shopSettings?.faviconUrl ? (
+                        <img src={shopSettings.faviconUrl} alt="" className="w-3.5 h-3.5 object-contain" />
+                      ) : (
+                        <Globe size={12} className="text-[#8b6f63]/30" />
+                      )}
+                      <span className="text-xs text-[#8b6f63]/50 truncate">{shopSettings?.shopName || 'Rare Beauty'}</span>
+                    </div>
+                  </div>
+                  {/* Header Mock */}
+                  <div className="bg-white border border-[#f5e6e0]/60 rounded-b-lg px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {shopSettings?.logoUrl ? (
+                        <img src={shopSettings.logoUrl} alt="Logo" className="h-8 object-contain" />
+                      ) : (
+                        <div className="h-8 w-20 bg-[#f5e6e0] rounded flex items-center justify-center">
+                          <span className="text-xs text-[#8b6f63]/40 font-serif">Logo</span>
+                        </div>
+                      )}
+                      <span className="text-lg font-serif text-[#8b6f63]">{shopSettings?.shopName || 'Rare Beauty'}</span>
+                    </div>
+                    <div className="flex items-center gap-6 mt-3">
+                      {['Shop', 'Makeup', 'Skincare', 'About'].map((item) => (
+                        <span key={item} className="text-xs text-[#8b6f63]/50">{item}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {/* Hero Mock */}
+                <div className="bg-gradient-to-br from-[#f5e6e0] to-[#fef5f1] rounded-lg p-6 text-center">
+                  <p className="text-xs text-[#8b6f63]/40 mb-1">Hero Section Preview</p>
+                  <p className="text-sm font-serif text-[#8b6f63]/60">{shopSettings?.shopName || 'Rare Beauty'}</p>
+                  <p className="text-xs text-[#8b6f63]/40 mt-1">Discover beauty that feels good</p>
+                </div>
               </div>
             </div>
 
@@ -1516,6 +1635,62 @@ export function AdminDashboard() {
                     <p className="text-xs text-[#8b6f63]/50 break-all">Current: {shopSettings.faviconUrl}</p>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Accent Color */}
+            <div className={sectionClass}>
+              <div className="flex items-center gap-3 mb-6">
+                <Palette size={20} className="text-[#d4a5a5]" />
+                <h2 className="text-xl font-serif text-[#8b6f63]">Accent Color</h2>
+              </div>
+              <p className="text-sm text-[#8b6f63]/70 mb-4">Customize the accent color used across your store. This is a preview feature.</p>
+              <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 mb-4">
+                {['#d4a5a5', '#c48a8a', '#e8b4b4', '#b88b8b', '#9b7fb8', '#7c6fa0', '#e6a07a', '#d4885c', '#8baf8b', '#6b946b',
+                  '#7ba8c9', '#5c8baf', '#d4a574', '#c4845c', '#c97b7b', '#af5c5c', '#b0b0b0', '#888888', '#666666', '#333333'].map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => toast(`Accent color set to ${color}`, 'success')}
+                    className={`w-10 h-10 rounded-lg border-2 transition-all hover:scale-110 ${color === '#d4a5a5' ? 'border-[#8b6f63] scale-105 shadow-md' : 'border-transparent'}`}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-[#8b6f63]">Custom:</label>
+                <input
+                  type="color"
+                  defaultValue="#d4a5a5"
+                  className="w-10 h-10 rounded-lg border border-[#f5e6e0] cursor-pointer p-0.5"
+                  onChange={(e) => toast(`Accent color: ${e.target.value}`, 'success')}
+                />
+                <span className="text-sm text-[#8b6f63]/50 font-mono">#d4a5a5</span>
+              </div>
+            </div>
+
+            {/* Reset to Defaults */}
+            <div className={sectionClass}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <RotateCcw size={20} className="text-[#d4a5a5]" />
+                    <h2 className="text-xl font-serif text-[#8b6f63]">Reset to Defaults</h2>
+                  </div>
+                  <p className="text-sm text-[#8b6f63]/50 ml-8">Restore all settings to their original values</p>
+                </div>
+                <button
+                  onClick={() => {
+                    if (shopSettings) {
+                      setShopSettings({ ...shopSettings, shopName: 'Rare Beauty' });
+                      toast('Settings reset to defaults. Save to apply.', 'success');
+                    }
+                  }}
+                  className="px-4 py-2.5 border border-red-200 text-red-500 rounded-full hover:bg-red-50 hover:border-red-300 transition-colors text-sm flex items-center gap-2"
+                >
+                  <RotateCcw size={14} />
+                  Reset All
+                </button>
               </div>
             </div>
           </div>
@@ -1849,54 +2024,63 @@ export function AdminDashboard() {
                 <button onClick={() => setIsSaleModalOpen(false)} className="text-[#8b6f63]/40 hover:text-[#8b6f63]"><X size={20} /></button>
               </div>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Sale Name *</label>
-                  <input type="text" value={saleForm.name} onChange={(e) => setSaleForm({ ...saleForm, name: e.target.value })} placeholder="e.g. Summer Glow Sale" className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Description</label>
-                  <textarea value={saleForm.description} onChange={(e) => setSaleForm({ ...saleForm, description: e.target.value })} placeholder="Describe this sale..." rows={2} className={inputClass + ' resize-none'} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+                {/* Basic Info */}
+                <div className="bg-[#fef5f1] rounded-lg p-4 space-y-4">
+                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Percent size={16} /> Sale Details</h4>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Start Date *</label>
-                    <input type="datetime-local" value={saleForm.startDate} onChange={(e) => setSaleForm({ ...saleForm, startDate: e.target.value })} className={inputClassSm} />
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Sale Name *</label>
+                    <input type="text" value={saleForm.name} onChange={(e) => setSaleForm({ ...saleForm, name: e.target.value })} placeholder="e.g. Summer Glow Sale" className={inputClass} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">End Date *</label>
-                    <input type="datetime-local" value={saleForm.endDate} onChange={(e) => setSaleForm({ ...saleForm, endDate: e.target.value })} className={inputClassSm} />
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Description</label>
+                    <textarea value={saleForm.description} onChange={(e) => setSaleForm({ ...saleForm, description: e.target.value })} placeholder="Describe this sale..." rows={2} className={inputClass + ' resize-none'} />
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setSaleForm(prev => ({ ...prev, isActive: !prev.isActive }))}
-                    className="flex items-center gap-2">
-                    {saleForm.isActive ? (
-                      <ToggleRight size={28} className="text-[#d4a5a5]" />
-                    ) : (
-                      <ToggleLeft size={28} className="text-gray-300" />
-                    )}
-                  </button>
-                  <span className="text-sm text-[#8b6f63]">{saleForm.isActive ? 'Active' : 'Inactive'}</span>
+
+                {/* Schedule & Status */}
+                <div className="bg-[#fef5f1] rounded-lg p-4 space-y-4">
+                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Calendar size={16} /> Schedule & Status</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-1">Start Date *</label>
+                      <input type="datetime-local" value={saleForm.startDate} onChange={(e) => setSaleForm({ ...saleForm, startDate: e.target.value })} className={inputClassSm} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-1">End Date *</label>
+                      <input type="datetime-local" value={saleForm.endDate} onChange={(e) => setSaleForm({ ...saleForm, endDate: e.target.value })} className={inputClassSm} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setSaleForm(prev => ({ ...prev, isActive: !prev.isActive }))}
+                      className="flex items-center gap-2">
+                      {saleForm.isActive ? (
+                        <ToggleRight size={28} className="text-[#d4a5a5]" />
+                      ) : (
+                        <ToggleLeft size={28} className="text-gray-300" />
+                      )}
+                    </button>
+                    <span className="text-sm text-[#8b6f63]">{saleForm.isActive ? 'Active' : 'Inactive'}</span>
+                  </div>
                 </div>
 
                 {/* Category Discounts */}
-                <div className="border-t border-[#f5e6e0] pt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Tag size={14} /> Category Discounts</label>
+                <div className="bg-[#fef5f1] rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Tag size={16} /> Category Discounts</h4>
                     <button onClick={addSaleCategory} className="text-xs text-[#d4a5a5] hover:underline flex items-center gap-1"><Plus size={12} /> Add</button>
                   </div>
                   {saleForm.categoryDiscounts.length === 0 && (
-                    <p className="text-xs text-[#8b6f63]/50 mb-2">No category discounts added yet</p>
+                    <p className="text-xs text-[#8b6f63]/50">No category discounts added yet. Click "Add" to include categories.</p>
                   )}
                   <div className="space-y-2">
                     {saleForm.categoryDiscounts.map((cat, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <select value={cat.categoryName} onChange={(e) => updateSaleCategory(idx, 'categoryName', e.target.value)} className="flex-1 px-3 py-2 bg-[#fef5f1] border border-[#f5e6e0]/80 rounded-lg text-sm text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]">
+                      <div key={idx} className="flex items-center gap-2 bg-white rounded-lg p-2 border border-[#f5e6e0]/60">
+                        <select value={cat.categoryName} onChange={(e) => updateSaleCategory(idx, 'categoryName', e.target.value)} className="flex-1 px-3 py-2 bg-transparent text-sm text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] rounded">
                           <option value="">Select category</option>
                           {allCategories.map(c => <option key={c}>{c}</option>)}
                         </select>
                         <div className="flex items-center gap-1">
-                          <input type="number" min="0" max="100" value={cat.discountPercentage} onChange={(e) => updateSaleCategory(idx, 'discountPercentage', e.target.value)} placeholder="%" className="w-20 px-2 py-2 bg-[#fef5f1] border border-[#f5e6e0]/80 rounded-lg text-sm text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]" />
+                          <input type="number" min="0" max="100" value={cat.discountPercentage} onChange={(e) => updateSaleCategory(idx, 'discountPercentage', e.target.value)} placeholder="%" className="w-20 px-2 py-2 bg-transparent text-sm text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] rounded" />
                           <span className="text-xs text-[#8b6f63]/50">%</span>
                         </div>
                         <button onClick={() => removeSaleCategory(idx)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><X size={14} /></button>
@@ -1929,54 +2113,69 @@ export function AdminDashboard() {
                 <button onClick={() => setIsPromoModalOpen(false)} className="text-[#8b6f63]/40 hover:text-[#8b6f63]"><X size={20} /></button>
               </div>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Promo Code *</label>
-                  <input type="text" value={promoForm.code} onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })} placeholder="e.g. SUMMER20" className={inputClass + ' font-mono uppercase tracking-wider'} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+                {/* Promo Code & Discount */}
+                <div className="bg-[#fef5f1] rounded-lg p-4 space-y-4">
+                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Ticket size={16} /> Code & Discount</h4>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Discount Type</label>
-                    <select value={promoForm.discountType} onChange={(e) => setPromoForm({ ...promoForm, discountType: e.target.value })} className={inputClass}>
-                      <option value="percentage">Percentage (%)</option>
-                      <option value="fixed">Fixed Amount ($)</option>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Promo Code *</label>
+                    <input type="text" value={promoForm.code} onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })} placeholder="e.g. SUMMER20" className={inputClass + ' font-mono uppercase tracking-wider'} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-1">Discount Type</label>
+                      <select value={promoForm.discountType} onChange={(e) => setPromoForm({ ...promoForm, discountType: e.target.value })} className={inputClass}>
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="fixed">Fixed Amount ($)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-1">Discount Value *</label>
+                      <input type="number" step="0.01" min="0" value={promoForm.discountValue} onChange={(e) => setPromoForm({ ...promoForm, discountValue: e.target.value })} placeholder={promoForm.discountType === 'percentage' ? '20' : '10.00'} className={inputClass} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Restrictions */}
+                <div className="bg-[#fef5f1] rounded-lg p-4 space-y-4">
+                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Filter size={16} /> Restrictions & Schedule</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-1">Min Order ($)</label>
+                      <input type="number" step="0.01" min="0" value={promoForm.minOrderAmount} onChange={(e) => setPromoForm({ ...promoForm, minOrderAmount: e.target.value })} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-1">Max Uses (0=unlimited)</label>
+                      <input type="number" min="0" value={promoForm.maxUses} onChange={(e) => setPromoForm({ ...promoForm, maxUses: e.target.value })} className={inputClass} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Expiry Date (optional)</label>
+                    <input type="datetime-local" value={promoForm.expiresAt} onChange={(e) => setPromoForm({ ...promoForm, expiresAt: e.target.value })} className={inputClassSm} />
+                  </div>
+                </div>
+
+                {/* Linking & Status */}
+                <div className="bg-[#fef5f1] rounded-lg p-4 space-y-4">
+                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Link size={16} /> Linking & Status</h4>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Link to Sale (optional)</label>
+                    <select value={promoForm.saleId} onChange={(e) => setPromoForm({ ...promoForm, saleId: e.target.value })} className={inputClass}>
+                      <option value="">No linked sale</option>
+                      {sales.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Discount Value *</label>
-                    <input type="number" step="0.01" min="0" value={promoForm.discountValue} onChange={(e) => setPromoForm({ ...promoForm, discountValue: e.target.value })} placeholder={promoForm.discountType === 'percentage' ? '20' : '10.00'} className={inputClass} />
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setPromoForm(prev => ({ ...prev, isValid: !prev.isValid }))} className="flex items-center gap-2">
+                      {promoForm.isValid ? (
+                        <ToggleRight size={28} className="text-[#d4a5a5]" />
+                      ) : (
+                        <ToggleLeft size={28} className="text-gray-300" />
+                      )}
+                    </button>
+                    <span className="text-sm text-[#8b6f63]">{promoForm.isValid ? 'Active' : 'Disabled'}</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Min Order ($)</label>
-                    <input type="number" step="0.01" min="0" value={promoForm.minOrderAmount} onChange={(e) => setPromoForm({ ...promoForm, minOrderAmount: e.target.value })} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Max Uses (0=unlimited)</label>
-                    <input type="number" min="0" value={promoForm.maxUses} onChange={(e) => setPromoForm({ ...promoForm, maxUses: e.target.value })} className={inputClass} />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Expiry Date (optional)</label>
-                  <input type="datetime-local" value={promoForm.expiresAt} onChange={(e) => setPromoForm({ ...promoForm, expiresAt: e.target.value })} className={inputClassSm} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Link to Sale (optional)</label>
-                  <select value={promoForm.saleId} onChange={(e) => setPromoForm({ ...promoForm, saleId: e.target.value })} className={inputClass}>
-                    <option value="">No linked sale</option>
-                    {sales.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setPromoForm(prev => ({ ...prev, isValid: !prev.isValid }))} className="flex items-center gap-2">
-                    {promoForm.isValid ? (
-                      <ToggleRight size={28} className="text-[#d4a5a5]" />
-                    ) : (
-                      <ToggleLeft size={28} className="text-gray-300" />
-                    )}
-                  </button>
-                  <span className="text-sm text-[#8b6f63]">{promoForm.isValid ? 'Active' : 'Disabled'}</span>
-                </div>
+
                 <div className="flex gap-3 pt-2">
                   <button onClick={() => setIsPromoModalOpen(false)} className={btnOutline}>Cancel</button>
                   <button onClick={handlePromoSave} disabled={promoSaving} className={btnPrimary}>

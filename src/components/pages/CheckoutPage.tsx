@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/store';
 import {
   CreditCard,
@@ -21,9 +21,130 @@ import {
   Tag,
   X,
   Percent,
+  Gift,
+  Sparkles,
+  Lock,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// ===== Animated Counter Hook =====
+function useAnimatedValue(target: number, duration = 800) {
+  const [displayValue, setDisplayValue] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+  const startValueRef = useRef(0);
+  const prevTargetRef = useRef(0);
+
+  useEffect(() => {
+    startValueRef.current = prevTargetRef.current !== target ? startValueRef.current : 0;
+    prevTargetRef.current = target;
+    startTimeRef.current = null;
+
+    const animate = (timestamp: number) => {
+      if (startTimeRef.current === null) startTimeRef.current = timestamp;
+      const elapsed = timestamp - startTimeRef.current;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = startValueRef.current + (target - startValueRef.current) * eased;
+      setDisplayValue(Math.round(current * 100) / 100);
+
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        startValueRef.current = target;
+      }
+    };
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, duration]);
+
+  return displayValue;
+}
+
+// ===== Savings Banner Component =====
+function SavingsBanner({
+  totalDiscount,
+  saleSavings,
+  promoDiscount,
+  appliedPromoCode,
+}: {
+  totalDiscount: number;
+  saleSavings: number;
+  promoDiscount: number;
+  appliedPromoCode: { code: string; description: string } | null;
+}) {
+  const animatedTotal = useAnimatedValue(totalDiscount);
+
+  return (
+    <motion.div
+      className="relative overflow-hidden bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border border-green-200/70 rounded-xl p-4 mb-5"
+      initial={{ opacity: 0, y: -10, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+    >
+      {/* Decorative sparkles */}
+      <div className="absolute top-1 right-3 pointer-events-none">
+        <motion.div
+          animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+        >
+          <Sparkles size={16} className="text-green-400/60" />
+        </motion.div>
+      </div>
+
+      <div className="flex items-center gap-2 mb-2">
+        <motion.div
+          animate={{ rotate: [0, -10, 10, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
+        >
+          <Gift size={16} className="text-green-600" />
+        </motion.div>
+        <p className="text-sm text-green-700 font-semibold">
+          You&apos;re saving{' '}
+          <motion.span
+            className="text-green-800 font-bold text-base"
+            key={animatedTotal}
+          >
+            ${animatedTotal.toFixed(2)}
+          </motion.span>
+          {' '}on this order!
+        </p>
+      </div>
+
+      {/* Savings breakdown */}
+      <div className="space-y-1 ml-6">
+        {saleSavings > 0 && (
+          <motion.div
+            className="flex items-center gap-1.5 text-xs text-green-600/80"
+            initial={{ opacity: 0, x: -5 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Tag size={10} className="text-green-500" />
+            <span>Sale discounts: <span className="font-semibold">-${saleSavings.toFixed(2)}</span></span>
+          </motion.div>
+        )}
+        {appliedPromoCode && promoDiscount > 0 && (
+          <motion.div
+            className="flex items-center gap-1.5 text-xs text-green-600/80"
+            initial={{ opacity: 0, x: -5 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Percent size={10} className="text-green-500" />
+            <span>Promo code ({appliedPromoCode.code}): <span className="font-semibold">-{promoDiscount.toFixed(2)}</span></span>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
 
 interface Address {
   id: string;
@@ -77,6 +198,8 @@ export function CheckoutPage() {
   const [promoInput, setPromoInput] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
+  const [promoExpanded, setPromoExpanded] = useState(false);
+  const [promoSuccess, setPromoSuccess] = useState(false);
 
   // New payment form
   const [newPayment, setNewPayment] = useState({
@@ -178,6 +301,9 @@ export function CheckoutPage() {
         applyPromoCode(data);
         toast(`Promo code applied! ${data.description}`);
         setPromoInput('');
+        setPromoSuccess(true);
+        setPromoExpanded(false);
+        setTimeout(() => setPromoSuccess(false), 2000);
       } else {
         setPromoError(data.error || 'Invalid promo code');
       }
@@ -817,132 +943,339 @@ export function CheckoutPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <h2 className="text-xl font-serif text-[#8b6f63] mb-6">Order Summary</h2>
-
-              {/* Promo Code Section */}
-              <div className="mb-4">
-                {appliedPromoCode ? (
-                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <Tag size={14} className="text-green-600" />
-                      <span className="text-sm text-green-700 font-medium">{appliedPromoCode.code}</span>
-                      <span className="text-xs text-green-600">({appliedPromoCode.description})</span>
-                    </div>
-                    <button type="button" onClick={() => { removePromoCode(); toast('Promo code removed'); }} className="text-green-600 hover:text-green-700">
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b6f63]/40" />
-                      <input
-                        type="text"
-                        placeholder="Promo code"
-                        value={promoInput}
-                        onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
-                        className="w-full pl-9 pr-3 py-2 rounded-lg bg-white border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] text-sm"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleApplyPromo}
-                      disabled={promoLoading || !promoInput.trim()}
-                      className="px-4 py-2 bg-[#8b6f63] text-white rounded-lg text-sm hover:bg-[#7a5f53] transition-colors disabled:opacity-50 flex items-center gap-1"
-                    >
-                      {promoLoading ? <Loader2 size={14} className="animate-spin" /> : <Percent size={14} />}
-                      Apply
-                    </button>
-                  </div>
-                )}
-                {promoError && <p className="text-xs text-red-500 mt-1">{promoError}</p>}
+              <div className="flex items-center gap-2 mb-6">
+                <ShoppingBag className="text-[#d4a5a5]" size={20} />
+                <h2 className="text-xl font-serif text-[#8b6f63]">Order Summary</h2>
               </div>
 
-              {/* Savings Banner */}
-              {totalDiscount > 0 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-green-700 font-medium text-center">
-                    🎉 You&apos;re saving <span className="font-bold">${totalDiscount.toFixed(2)}</span> on this order!
-                  </p>
-                </div>
-              )}
-
-              <div className="space-y-3 mb-6 max-h-48 overflow-y-auto">
+              {/* ===== ORDER ITEMS WITH THUMBNAILS ===== */}
+              <div className="space-y-3 mb-5 max-h-52 overflow-y-auto pr-1 custom-scrollbar">
                 {cartItems.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#8b6f63] truncate mr-2">{item.name} x {item.quantity}</span>
-                      {item.selectedColor && item.selectedColor !== 'default' && (
-                        <span className="inline-flex items-center gap-1 flex-shrink-0">
-                          <span className="w-3 h-3 rounded-full border border-gray-200" style={{ backgroundColor: item.selectedColor }} />
-                          <span className="text-[10px] text-[#8b6f63]/60 font-mono">{item.selectedColor}</span>
-                        </span>
-                      )}
+                  <motion.div
+                    key={item.id}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/60 transition-colors"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                  >
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-12 h-12 rounded-lg object-cover border border-[#f5e6e0]/50"
+                      />
+                      <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#d4a5a5] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                        {item.quantity}
+                      </span>
                     </div>
-                    <span className="text-[#8b6f63] whitespace-nowrap">${(item.price * item.quantity).toFixed(2)}</span>
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[#8b6f63] font-medium truncate leading-tight">{item.name}</p>
+                      {item.selectedColor && item.selectedColor !== 'default' && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="w-2.5 h-2.5 rounded-full border border-gray-200" style={{ backgroundColor: item.selectedColor }} />
+                          <span className="text-[10px] text-[#8b6f63]/50 font-mono">{item.selectedColor}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {item.originalPrice && item.originalPrice > item.price ? (
+                          <>
+                            <span className="text-[10px] text-[#8b6f63]/40 line-through">${item.originalPrice.toFixed(2)}</span>
+                            <span className="text-xs text-[#8b6f63] font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-[#8b6f63] font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
-              <div className="border-t border-[#8b6f63]/20 pt-4 space-y-3 mb-6">
+
+              {/* ===== PROMO CODE SECTION ===== */}
+              <div className="mb-5">
+                {appliedPromoCode ? (
+                  <motion.div
+                    className="relative overflow-hidden"
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    {/* Confetti-like decorative dots */}
+                    <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                      {[...Array(8)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          className="absolute w-1.5 h-1.5 rounded-full"
+                          style={{
+                            backgroundColor: ['#f59e0b', '#10b981', '#d4a5a5', '#f472b6', '#8b5cf6', '#06b6d4', '#f59e0b', '#10b981'][i],
+                            left: `${10 + i * 12}%`,
+                            top: '50%',
+                          }}
+                          initial={{ opacity: 0, scale: 0, y: 0 }}
+                          animate={{
+                            opacity: [0, 1, 0],
+                            scale: [0, 1.2, 0.5],
+                            y: [0, -12, -20],
+                          }}
+                          transition={{
+                            duration: 0.8,
+                            delay: i * 0.05,
+                            repeat: 2,
+                            repeatDelay: 0.3,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <motion.div
+                          initial={{ rotate: -20, scale: 0 }}
+                          animate={{ rotate: 0, scale: 1 }}
+                          transition={{ type: 'spring', delay: 0.1 }}
+                        >
+                          <Gift size={16} className="text-green-600" />
+                        </motion.div>
+                        <span className="text-sm text-green-700 font-bold tracking-wide">{appliedPromoCode.code}</span>
+                        <span className="text-[10px] text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full font-medium">
+                          {appliedPromoCode.description}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { removePromoCode(); toast('Promo code removed'); }}
+                        className="text-green-500 hover:text-red-500 transition-colors p-0.5 hover:bg-red-50 rounded-full"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div>
+                    {/* Expandable toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setPromoExpanded(!promoExpanded)}
+                      className="w-full flex items-center justify-between py-2 text-sm text-[#8b6f63]/70 hover:text-[#8b6f63] transition-colors group"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Gift size={14} className="text-[#d4a5a5] group-hover:text-[#d4a5a5]" />
+                        <span className="font-medium">Have a promo code?</span>
+                      </span>
+                      <motion.div
+                        animate={{ rotate: promoExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronDown size={16} />
+                      </motion.div>
+                    </button>
+
+                    {/* Expandable input area */}
+                    <AnimatePresence>
+                      {promoExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex gap-2 pt-1 pb-1">
+                            <div className="flex-1 relative">
+                              <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b6f63]/30" />
+                              <input
+                                type="text"
+                                placeholder="Enter code"
+                                value={promoInput}
+                                onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleApplyPromo(); }}
+                                className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-white border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/30 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]/50 focus:border-[#d4a5a5] text-sm transition-all"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleApplyPromo}
+                              disabled={promoLoading || !promoInput.trim()}
+                              className="px-4 py-2.5 bg-[#8b6f63] text-white rounded-lg text-sm hover:bg-[#7a5f53] transition-all disabled:opacity-50 flex items-center gap-1.5 font-medium"
+                            >
+                              {promoLoading ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Sparkles size={14} />
+                              )}
+                              {promoLoading ? 'Checking...' : 'Apply'}
+                            </button>
+                          </div>
+
+                          {/* Hint text */}
+                          <p className="text-[10px] text-[#8b6f63]/40 mt-1.5 flex items-center gap-1">
+                            <Tag size={10} />
+                            Try: WELCOME10, SUMMER20, FREESHIP
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Error state */}
+                    <AnimatePresence>
+                      {promoError && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          className="flex items-center gap-1.5 mt-2 text-xs text-red-500 bg-red-50 px-2.5 py-1.5 rounded-lg"
+                        >
+                          <AlertCircle size={12} className="flex-shrink-0" />
+                          <span>{promoError}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Success flash */}
+                    <AnimatePresence>
+                      {promoSuccess && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          className="flex items-center gap-1.5 mt-2 text-xs text-green-600 bg-green-50 px-2.5 py-1.5 rounded-lg"
+                        >
+                          <CheckCircle size={12} className="flex-shrink-0" />
+                          <span>Promo code applied successfully!</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+
+              {/* ===== SAVINGS BANNER ===== */}
+              {totalDiscount > 0 && (
+                <SavingsBanner totalDiscount={totalDiscount} saleSavings={saleSavings} promoDiscount={promoDiscount} appliedPromoCode={appliedPromoCode} />
+              )}
+
+              {/* ===== PRICING BREAKDOWN ===== */}
+              <div className="border-t border-[#8b6f63]/10 pt-4 space-y-2.5 mb-5">
                 {saleSavings > 0 && (
-                  <div className="flex justify-between text-[#8b6f63]/60">
+                  <div className="flex justify-between text-[#8b6f63]/50 text-xs">
                     <span>Original Price</span>
                     <span className="line-through">${originalSubtotal.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-[#8b6f63]">
+                <div className="flex justify-between text-[#8b6f63] text-sm">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">${subtotal.toFixed(2)}</span>
                 </div>
                 {saleSavings > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span className="font-medium">Sale Savings</span>
-                    <span className="font-medium">-${saleSavings.toFixed(2)}</span>
-                  </div>
+                  <motion.div
+                    className="flex justify-between text-green-600 text-sm"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                  >
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Tag size={12} />
+                      Sale discounts
+                    </span>
+                    <span className="font-semibold">-{saleSavings.toFixed(2)}</span>
+                  </motion.div>
                 )}
                 {appliedPromoCode && (
-                  <div className="flex justify-between text-green-600">
-                    <span className="font-medium">Promo ({appliedPromoCode.code})</span>
-                    <span className="font-medium">-${promoDiscount.toFixed(2)}</span>
-                  </div>
+                  <motion.div
+                    className="flex justify-between text-green-600 text-sm"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Percent size={12} />
+                      Promo ({appliedPromoCode.code})
+                    </span>
+                    <span className="font-semibold">-{promoDiscount.toFixed(2)}</span>
+                  </motion.div>
                 )}
-                <div className="flex justify-between text-[#8b6f63]">
-                  <span>Shipping</span>
-                  <span className={shipping === 0 ? 'text-green-600' : ''}>
-                    {shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}
+
+                {/* Subtle separator */}
+                <div className="border-b border-[#8b6f63]/8" />
+
+                <div className="flex justify-between text-[#8b6f63] text-sm">
+                  <span className="flex items-center gap-1.5">
+                    <Truck size={13} className="text-[#8b6f63]/40" />
+                    Shipping
+                  </span>
+                  <span className={`font-medium ${shipping === 0 ? 'text-green-600' : ''}`}>
+                    {shipping === 0 ? (
+                      <span className="flex items-center gap-1">
+                        <CheckCircle size={13} className="text-green-500" />
+                        Free
+                      </span>
+                    ) : (
+                      `$${shipping.toFixed(2)}`
+                    )}
                   </span>
                 </div>
                 {shipping > 0 && (
-                  <p className="text-xs text-[#8b6f63]/50">Free shipping on orders over $50</p>
+                  <p className="text-[10px] text-[#8b6f63]/40 -mt-1">
+                    <span className="flex items-center gap-1">
+                      <Sparkles size={10} />
+                      Add ${(50 - afterPromoSubtotal).toFixed(2)} more for free shipping
+                    </span>
+                  </p>
                 )}
-                <div className="flex justify-between text-[#8b6f63]">
+
+                <div className="flex justify-between text-[#8b6f63] text-sm">
                   <span>Tax</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span className="font-medium">${tax.toFixed(2)}</span>
                 </div>
-                <div className="border-t border-[#8b6f63]/20 pt-3">
-                  <div className="flex justify-between text-lg text-[#8b6f63] font-semibold">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+
+                {/* ===== TOTAL ROW ===== */}
+                <div className="border-t-2 border-[#8b6f63]/15 pt-3 mt-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-base font-semibold text-[#8b6f63]">Total</span>
+                    <span className="text-xl font-bold text-[#8b6f63]">${total.toFixed(2)}</span>
                   </div>
                   {totalDiscount > 0 && (
-                    <p className="text-xs text-green-600 mt-1">You save ${totalDiscount.toFixed(2)} on this order</p>
+                    <motion.p
+                      className="text-[11px] text-green-600 mt-1 flex items-center gap-1"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <Sparkles size={11} />
+                      You save ${totalDiscount.toFixed(2)} on this order
+                    </motion.p>
                   )}
                 </div>
               </div>
 
-              {/* Trust badges */}
-              <div className="space-y-2 pt-2">
-                <div className="flex items-center gap-2 text-xs text-[#8b6f63]/60">
-                  <ShieldCheck size={14} className="text-green-600" />
-                  <span>Secure checkout</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-[#8b6f63]/60">
-                  <Truck size={14} className="text-blue-600" />
-                  <span>{shipping === 0 ? 'Free shipping' : 'Fast delivery'}</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-[#8b6f63]/60">
-                  <Package size={14} className="text-[#d4a5a5]" />
-                  <span>30-day returns</span>
+              {/* ===== SECURITY BADGES ===== */}
+              <div className="border-t border-[#8b6f63]/10 pt-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-1.5 text-[10px] text-[#8b6f63]/50 bg-white/60 rounded-lg px-2.5 py-2">
+                    <ShieldCheck size={13} className="text-green-600 flex-shrink-0" />
+                    <div>
+                      <span className="font-semibold text-[#8b6f63]/70 block leading-tight">Secure Checkout</span>
+                      <span>256-bit SSL</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-[#8b6f63]/50 bg-white/60 rounded-lg px-2.5 py-2">
+                    <Lock size={13} className="text-green-600 flex-shrink-0" />
+                    <div>
+                      <span className="font-semibold text-[#8b6f63]/70 block leading-tight">Encrypted</span>
+                      <span>Data protected</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-[#8b6f63]/50 bg-white/60 rounded-lg px-2.5 py-2">
+                    <Truck size={13} className="text-[#d4a5a5] flex-shrink-0" />
+                    <div>
+                      <span className="font-semibold text-[#8b6f63]/70 block leading-tight">{shipping === 0 ? 'Free Shipping' : 'Fast Delivery'}</span>
+                      <span>Tracked package</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-[#8b6f63]/50 bg-white/60 rounded-lg px-2.5 py-2">
+                    <Package size={13} className="text-[#d4a5a5] flex-shrink-0" />
+                    <div>
+                      <span className="font-semibold text-[#8b6f63]/70 block leading-tight">Easy Returns</span>
+                      <span>30-day policy</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
