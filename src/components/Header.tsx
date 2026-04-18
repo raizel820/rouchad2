@@ -34,6 +34,7 @@ export function Header() {
   const [cartBounce, setCartBounce] = useState(false);
   const [prevCartCount, setPrevCartCount] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const { theme, setTheme } = useTheme();
 
@@ -47,6 +48,15 @@ export function Header() {
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Scroll detection for header effects
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Cart badge bounce animation when items are added
@@ -145,7 +155,7 @@ export function Header() {
 
   const handleWishlistClick = () => {
     if (isAuthenticated) {
-      navigateToProfile('wishlist');
+      navigate('wishlist');
     } else {
       navigate('login');
     }
@@ -165,7 +175,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#1a1215]/95 backdrop-blur-sm border-b border-[#f5e6e0] dark:border-[#2d1f24]">
+      <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 dark:bg-[#1a1215]/90 backdrop-blur-md shadow-sm' : 'bg-white/95 dark:bg-[#1a1215]/95 backdrop-blur-sm'} border-b border-[#f5e6e0] dark:border-[#2d1f24] relative`}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-4">
             {/* Mobile menu button */}
@@ -362,7 +372,7 @@ export function Header() {
                             My Orders
                           </button>
                           <button
-                            onClick={() => { navigateToProfile('wishlist'); setIsProfileOpen(false); }}
+                            onClick={() => { navigate('wishlist'); setIsProfileOpen(false); }}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors text-left"
                           >
                             <Heart size={16} className="text-[#8b6f63]/60 dark:text-[#a89898]" />
@@ -481,10 +491,10 @@ export function Header() {
           <AnimatePresence>
             {isMenuOpen && (
               <motion.nav
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                initial={{ height: 0, opacity: 0, x: -16 }}
+                animate={{ height: 'auto', opacity: 1, x: 0 }}
+                exit={{ height: 0, opacity: 0, x: -16 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                 className="lg:hidden overflow-hidden"
               >
                 <div className="flex flex-col gap-3 pb-4 border-t border-[#f5e6e0] dark:border-[#2d1f24] pt-4">
@@ -610,6 +620,18 @@ export function Header() {
           </AnimatePresence>
         </div>
       </header>
+
+      {/* Bottom gradient border on scroll */}
+      <AnimatePresence>
+        {isScrolled && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed top-[73px] left-0 right-0 h-px z-50 bg-gradient-to-r from-transparent via-[#d4a5a5]/30 dark:via-[#d4a5a5]/20 to-transparent pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
 
       {/* Mini Cart Drawer */}
       <MiniCartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />

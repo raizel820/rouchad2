@@ -19,6 +19,7 @@ import { HelpCenterPage } from '@/components/pages/HelpCenterPage';
 import { ProfilePage } from '@/components/pages/ProfilePage';
 import { SettingsPage } from '@/components/pages/SettingsPage';
 import { AdminDashboard } from '@/components/pages/AdminDashboard';
+import { WishlistPage } from '@/components/pages/WishlistPage';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { QuickViewModal } from '@/components/QuickViewModal';
@@ -114,6 +115,8 @@ function PageRenderer() {
         return <ProfilePage />;
       case 'settings':
         return <SettingsPage />;
+      case 'wishlist':
+        return <WishlistPage />;
       case 'admin':
         return <AdminDashboard />;
       default:

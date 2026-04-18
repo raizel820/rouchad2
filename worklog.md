@@ -358,49 +358,75 @@ Stage Summary:
 - Admin dashboard has enhanced styling across all tabs
 
 ---
-# HANDOVER DOCUMENT
+# HANDOVER DOCUMENT (Updated)
 
-## Current Project Status
+## 1. Current Project Status
 - **App Type**: Rare Beauty e-commerce single-page application
-- **Tech Stack**: Next.js 16, TypeScript 5, Tailwind CSS 4, Framer Motion, Prisma/SQLite, Zustand, shadcn/ui
-- **Dev Server**: Running on port 3000, 0 lint errors
-- **Database**: SQLite with all models synced (17 models including Sale, PromoCode, ShopSettings)
+- **Tech Stack**: Next.js 16.1.3 (Turbopack), TypeScript 5, Tailwind CSS 4, Framer Motion, Prisma/SQLite, Zustand, shadcn/ui
+- **Dev Server**: Port 3000, 0 lint errors, 2 pre-existing warnings (jsx-a11y/alt-text on lucide Image)
+- **Database**: SQLite with 17+ models synced (User, Product, Order, OrderItem, Review, Wishlist, Sale, SaleCategory, PromoCode, ShopSettings, etc.)
+- **Compilation**: All routes compile successfully, homepage and API routes return HTTP 200
 
-## Completed Features (This Session)
-1. **Demo Data Seeding**: Created `/api/seed-sales` route that populates:
-   - 2 active sales with category discounts
-   - 4 promo codes (WELCOME10, SUMMER20, FREESHIP, VIP30)
-   - 12 reviews across products
-   - Fixed misleading product badges
-2. **HomePage Enhancements**:
-   - Multi-sale sections with per-sale countdown timers (Days/Hrs/Min/Sec)
-   - Dynamic promotional banners reflecting actual sale data
-   - Featured products subtitle "Best Sellers · Customer Favorites"
-3. **ProductDetailPage Enhancements**:
-   - Rating distribution chart (animated progress bars)
-   - Enhanced review cards (avatars, verified badges, helpful buttons, relative dates)
-   - Sort dropdown (Most Recent, Highest Rated, Lowest Rated)
-4. **CheckoutPage Enhancements**:
-   - Expandable promo code section with hint text
-   - Animated savings display with individual breakdown
-   - Security badges (SSL, encrypted, free shipping, easy returns)
-   - Order item thumbnails with sale price strikethroughs
-5. **AdminDashboard Enhancements**:
-   - Gradient stats cards with trend indicators and icons
-   - Sale cards with status badges, progress bars, category/promo counts
-   - Promo code cards with usage progress bars and color-coded discount types
-   - Settings tab with live preview, accent color picker, reset to defaults
+## 2. All Completed Features
 
-## Key Architecture Notes
-- **Navigation**: Zustand-based SPA (no URL routing). `useStore().navigate('page-name')` changes pages.
+### Bug Fixes
+1. **Promo code usage tracking** (Task 3): Fixed critical bug where promo code `currentUses` was never incremented on checkout. Order now records `promoCodeId`, `promoCode` string, and `discountTotal`. Also fixed subtotal/total calculation bug in CheckoutPage.
+2. **Order shipping value**: Fixed hardcoded `shipping: 0` in order creation - now uses client-sent shipping value.
+
+### New Pages
+3. **WishlistPage** (Task 5): Full dedicated wishlist page with:
+   - Responsive product grid (1/2/3/4 columns)
+   - Per-item hover actions (Move to Cart, Remove)
+   - Batch actions (Add All to Cart, Clear All)
+   - Animated empty state with heart icon
+   - Bottom action bar on mobile
+   - Backend persistence via /api/wishlist
+   - Header navigation wired from all entry points
+
+### New Features
+4. **Advanced Product Filtering** (Task 4): Added to ProductsPage:
+   - Price range dual-thumb slider (shadcn/ui Slider)
+   - Rating filter pills (All, 4+, 3+, 2+, 1+) with animated layoutId
+   - On-sale toggle with gradient styling
+   - Collapsible filter panel with AnimatePresence
+   - Active filter summary tags (removable pills)
+   - Clear All Filters button
+
+5. **Product Image Gallery** (Task 8): Added to ProductDetailPage:
+   - Real image gallery from product `images` JSON field
+   - Thumbnail strip with active state
+   - Zoom on hover (2x magnification following cursor)
+   - Fullscreen lightbox with prev/next navigation
+   - Keyboard support (ESC close, arrow keys navigate)
+   - Image counter badge
+   - Conditional display (hidden for single-image products)
+
+### Styling Enhancements
+6. **Hero Section** (Task 7): Parallax on scroll, floating decorative dots, CTA button glow effect, text gradient heading, scroll-down indicator with bounce animation
+
+7. **Footer** (Task 7): Newsletter email subscription with animated input, social media icons with hover animations, animated link underlines, Back-to-Top button with AnimatePresence, gradient separator at top
+
+8. **Header** (Task 7): Backdrop blur on scroll (blur-sm → blur-md), gradient bottom border when scrolled, mobile menu slide-in animation with x-offset
+
+9. **CartPage** (Task 12): Item enter/exit animations, polished quantity controls (circular buttons, disabled states, confirmation tooltip), animated savings banner, free shipping progress bar, estimated delivery date, sticky order summary (desktop), fixed bottom bar (mobile), "You Might Also Like" recommendations
+
+10. **QuickViewModal** (Task 14): Image gallery with prev/next, sale badge with discount %, animated price display, enhanced Add to Cart button, quantity bounce animation, ESC key close, "View Full Details" with arrow slide
+
+11. **ProfilePage** (Task 15): User avatar with gradient initials, stats cards (Total Orders, Wishlist Items, Total Spent, Delivered), order filtering pills, relative time format, reorder button, Settings tab with notification preferences, delete account danger zone, tab transition animations
+
+## 3. Key Architecture Notes
+- **Navigation**: Zustand-based SPA. `useStore().navigate('page-name')` changes pages. Pages: home, products, product-detail, cart, checkout, login, signup, profile, settings, admin, order-confirmation, order-tracking, returns-refunds, help-center, contact, wishlist
 - **API Routes**: All under `/api/`. Admin routes under `/api/admin/`.
 - **Color Scheme**: `bg-[#fef5f1]`, `text-[#8b6f63]`, accent `#d4a5a5`, dark: `bg-[#2d1f24]`, `text-[#e8ddd5]`
 - **Admin Login**: admin@rarebeauty.com / mona123
 - **Demo Login**: demo@rarebeauty.com / demo123
-- **File Uploads**: Stored in `/home/z/my-project/upload/` directory, served via `/api/admin/upload`
-- **Images**: Products use images in `/public/products/` (generated by AI image generation)
+- **File Uploads**: `/home/z/my-project/upload/` directory, served via `/api/admin/upload`
+- **Product Images**: `/public/products/` (AI-generated)
+- **Start Dev Server**: `bash .zscripts/dev.sh` or `npx next dev --turbopack -p 3000`
 
-## Available Promo Codes for Testing
+## 4. Available Test Data
+
+### Promo Codes
 | Code | Type | Value | Min Order | Max Uses | Expires |
 |------|------|-------|-----------|----------|---------|
 | WELCOME10 | Percentage | 10% | $25 | 100 | Dec 2026 |
@@ -408,25 +434,213 @@ Stage Summary:
 | FREESHIP | Fixed | $5.99 | $30 | 200 | Dec 2026 |
 | VIP30 | Percentage | 30% | $75 | 10 | Jun 2026 |
 
-## Active Sales for Testing
+### Active Sales
 | Sale | Categories | Discount | End Date |
 |------|-----------|----------|----------|
 | Summer Glow Sale | Makeup (20%), Skincare (15%) | Up to 20% | Aug 31, 2026 |
 | Haircare Week | Haircare (25%) | 25% | May 15, 2026 |
 
-## Unresolved Issues & Risks
-1. **Product card click in agent-browser**: Product card clicks work in real browser but agent-browser's accessibility tree click doesn't trigger Zustand navigation (JS click works). This is a testing tool limitation, not a bug.
-2. **Review seed mismatch**: The seed-sales route looked for "Soft Pie Cream Blush" but the DB has "Soft Pie Cream Blush gouffi", so 2 of 3 Cream Blush reviews weren't created. Minor data issue.
-3. **No image upload in production**: The upload feature saves to local filesystem. Would need cloud storage (S3, Cloudinary) for production.
-4. **Promo code usage not incremented on checkout**: The validate endpoint checks usage but the order placement doesn't increment `currentUses`.
-5. **No email notifications**: Order confirmation, shipping updates, etc. are not implemented.
+## 5. Unresolved Issues & Risks
+1. **agent-browser testing limitation**: Product card clicks use Zustand navigation (JS click) which agent-browser's accessibility tree doesn't trigger. Works fine in real browser. Not a code bug.
+2. **Review seed mismatch**: Seed-sales route references "Soft Pie Cream Blush" but DB has "Soft Pie Cream Blush gouffi" - 2 of 3 Cream Blush reviews weren't seeded. Minor data issue.
+3. **No cloud image upload**: Upload saves to local filesystem. Production would need S3/Cloudinary.
+4. **No email notifications**: Order confirmation, shipping updates not implemented.
+5. **Dev server stability**: Next.js dev server occasionally dies in sandbox environment (OOM/timeout). Not a code issue.
 
-## Priority Recommendations for Next Phase
-1. **Fix promo code usage tracking** - Increment `currentUses` when order is placed with a promo code
-2. **Add product image upload from admin** - Allow admin to drag-and-drop images for products
-3. **Add order tracking timeline** - Visual timeline showing order status progression
-4. **Add wishlist page** - Dedicated wishlist page with product grid
-5. **Add dark mode refinements** - Some new components may need dark mode polish
-6. **Add loading skeletons** - Ensure all pages have proper loading states
-7. **Add product search/filter** - Advanced search with filters for price range, rating, on-sale
-8. **Mobile responsiveness audit** - Test all new features on mobile viewports
+## 6. Priority Recommendations for Next Phase
+1. ✅ ~~Fix promo code usage tracking~~ — DONE
+2. ✅ ~~Add wishlist page~~ — DONE
+3. ✅ ~~Add product search/filter~~ — DONE
+4. ✅ ~~Add order tracking timeline~~ — DONE (previous session)
+5. **Add product image upload from admin** - Drag-and-drop image management for products
+6. **Add dark mode refinements** - Audit new components for dark mode polish
+7. **Mobile responsiveness audit** - Test all new features on mobile viewports (filter panel, wishlist, cart fixed bar, gallery)
+8. **Add email notifications** - Order confirmation, shipping updates via email service
+9. **Add product comparison feature** - Compare 2-3 products side by side
+10. **Add recently viewed products API persistence** - Currently in-memory only, should persist to DB
+11. **Performance optimization** - Lazy loading for below-fold content, image optimization
+12. **Add internationalization (i18n)** - Multi-language support for broader market
+
+---
+Task ID: 3
+Agent: full-stack-developer
+Task: Fix promo code usage tracking on checkout
+
+Work Log:
+- Read Prisma schema to confirm Order model has `discountTotal`, `promoCode`, `promoCodeId` fields and PromoCode model has `currentUses` field
+- Read Zustand store to understand `AppliedPromoCode` interface (id, code, discountType, discountValue, discountAmount)
+- Modified `/api/orders/route.ts` POST handler:
+  - Added `promoCodeId`, `promoCode`, `discountTotal`, `shipping` to request body destructuring
+  - Added `discountTotal`, `promoCode`, `promoCodeId` fields to `db.order.create` data (with null fallbacks)
+  - Added `shipping` field to use client-sent value instead of hardcoded 0
+  - Added promo code `currentUses` increment via `db.promoCode.update` after order creation (only when `promoCodeId` is provided)
+- Modified `CheckoutPage.tsx` `handleSubmit`:
+  - Changed `subtotal` in orderData to use `afterPromoSubtotal` (subtotal after promo discount)
+  - Added `shipping` to orderData (uses the calculated shipping value)
+  - Changed `total` in orderData to use the properly calculated `total` variable (includes shipping and promo discount)
+  - Added `promoCodeId: appliedPromoCode?.id || null`
+  - Added `promoCode: appliedPromoCode?.code || null`
+  - Added `discountTotal: promoDiscount`
+
+Stage Summary:
+- Orders now correctly record promo code usage: `promoCodeId`, `promoCode` string, and `discountTotal` are stored on the Order record
+- Promo code `currentUses` is incremented in the database each time the promo code is used in an order
+- Fixed a pre-existing bug where `total` sent to the API was `subtotal + tax` (missing shipping and promo discount) — now uses the correct calculated total
+- Shipping is now sent to the API instead of being hardcoded to 0
+- Null safety: all promo fields gracefully handle the case where no promo code is applied
+
+---
+Task ID: 4
+Agent: full-stack-developer
+Task: Add advanced product filtering to ProductsPage
+
+Work Log:
+- Read and analyzed ProductsPage.tsx, HomePage.tsx, products API route, store, and shadcn/ui components
+- Added price range filter using shadcn/ui Slider component (dual-thumb range slider)
+- Added rating filter with pill-style buttons (All, 4+, 3+, 2+, 1+) using motion.span with layoutId for animated pill indicator
+- Added on-sale toggle button with gradient styling and animated X indicator
+- Created collapsible filter panel with Framer Motion AnimatePresence (height + opacity animation)
+- Added "Clear All Filters" button visible when any filter is active
+- Added active filter summary tags when filter panel is closed (showing individual filters as removable pills)
+- Added "Clear all" link in filter summary section
+- Added empty-state "Clear All Filters" CTA button when filtering results in no products
+- Updated Product interface to include sale fields (discountedPrice, effectiveDiscount, savings, saleName, onSale)
+- Implemented client-side filtering with useMemo for price range, minimum rating, and on-sale toggle
+- Dynamic max price bound computed from fetched product data
+- Filter button shows red "!" badge when filters are active
+- Responsive grid layout for filter sections (1 col mobile, 3 col desktop)
+- All styling matches Rare Beauty aesthetic (bg-[#fef5f1], text-[#8b6f63], accent-[#d4a5a5])
+
+Stage Summary:
+- ProductsPage now has advanced filtering (price range slider, rating pills, on-sale toggle)
+- Filters are in a collapsible animated panel with clear all functionality
+- Active filter summary shown when panel is closed
+- All filters work client-side on the product array returned from the API
+
+---
+Task ID: 5
+Agent: full-stack-developer
+Task: Create dedicated wishlist page
+
+Work Log:
+- Read all reference files: store.ts, ProductsPage.tsx, ProductCard.tsx, page.tsx, HomePage.tsx, Header.tsx
+- Created WishlistPage.tsx with: product grid, empty state, batch actions (Add All to Cart, Clear All), per-item actions (Move to Cart, Remove), animated transitions
+- Wired wishlist route into page.tsx router (case 'wishlist': return <WishlistPage />)
+- Updated Header.tsx to navigate to dedicated wishlist page instead of profile wishlist tab (3 locations: handleWishlistClick, profile dropdown, mobile menu)
+- Fixed ESLint error (react-hooks/set-state-in-effect) by using derived loading state instead of synchronous setLoading in effect
+- Verified with lint check — 0 errors (2 pre-existing warnings in AdminDashboard)
+
+Stage Summary:
+- WishlistPage is fully functional with responsive grid (1/2/3/4 cols), remove, add-to-cart, empty state with animated heart, batch actions, bottom action bar
+- Header properly navigates to dedicated wishlist page from all entry points
+- All existing wishlist backend persistence (GET/POST/DELETE /api/wishlist) integrated
+- Lint passes cleanly
+
+---
+Task ID: 7
+Agent: full-stack-developer
+Task: Improve styling details across the Rare Beauty e-commerce app
+
+Work Log:
+- Enhanced Hero.tsx with parallax, floating elements, CTA glow, scroll indicator
+- Enhanced Footer.tsx with newsletter, social icons, back to top, animations
+- Enhanced Header.tsx with backdrop blur, wishlist badge, scroll effects
+
+Stage Summary:
+- All three components have polished styling enhancements
+
+---
+Task ID: 8
+Agent: full-stack-developer
+Task: Add product image gallery with zoom to ProductDetailPage
+
+Work Log:
+- Removed fake IMAGE_VARIANTS (CSS filter-based mock gallery) and replaced with real image-based gallery using product's `images` JSON field
+- Added `images` field to local Product interface and `X`, `ZoomIn` to Lucide icon imports
+- Added `isLightboxOpen` state and `galleryImages` useMemo to parse JSON images with deduplication (main image first, max 8)
+- Added `hasMultipleImages` flag to conditionally show/hide thumbnail strip and navigation arrows
+- Updated main image to use actual gallery images with smooth AnimatePresence crossfade transitions
+- Added cursor-zoom-in click handler to open fullscreen lightbox
+- Added image counter badge showing "X / Y" for multi-image products
+- Replaced navigation arrows to only show when multiple images exist
+- Updated zoom-on-hover to work with real images (2x magnification, transform-origin follows mouse)
+- Added fullscreen lightbox overlay: fixed inset-0, z-50, bg-black/80 backdrop-blur-sm
+- Lightbox features: close button (X), prev/next navigation arrows, thumbnail strip, ESC key, arrow key navigation, keyboard hints
+- Added ESC key + ArrowLeft/ArrowRight keyboard support via useEffect
+- Thumbnail strip: 16x16px rounded-lg with active border-[#d4a5a5] state and inactive opacity
+- Added dark mode support throughout (dark:bg classes for backgrounds)
+- Set draggable={false} and select-none on gallery images for better UX
+
+Stage Summary:
+- ProductDetailPage now has a full image gallery experience with real product images, zoom on hover, and fullscreen lightbox
+
+---
+Task ID: 12
+Agent: full-stack-developer
+Task: Enhance CartPage with better UX, animations, and features
+
+Work Log:
+- Enhanced cart items with smooth enter/exit animations (slide-in from left, slide-out to right with height collapse)
+- Added polished QuantityControls component with circular +/- buttons, hover effects, disabled state at quantity 1
+- Added trash icon button next to quantity controls for quick removal
+- Added confirmation tooltip ("Remove item? Yes/No") when pressing minus at quantity 1
+- Added bounce animation on quantity number change with spring physics
+- Added checkmark micro-animation when quantity increases
+- Created SavingsBanner component with animated counter (useAnimatedValue hook), gradient background, sparkles icon, and gift icon animation
+- Added estimated delivery date display (Clock icon, calculated as today + 5 days)
+- Enhanced free shipping progress bar with truck icon and gradient fill
+- Added green checkmark icon when free shipping is achieved
+- Made order summary sidebar sticky on desktop (sticky top-24)
+- Added mobile fixed bottom bar with total, savings badge, checkout button, and free shipping progress
+- Enhanced empty cart state with larger animated bag icon, pulse ring effect, and "Start Shopping" CTA
+- Added "You Might Also Like" section to empty cart state with recommended product cards
+- Added "You Might Also Like" horizontal scroll section below cart items (for non-empty cart)
+- Created RecommendedProductCard component with image, rating, price, add-to-cart with animated checkmark
+- Recommendations fetched from /api/products, excluding items already in cart, refreshed on item removal
+- Removed redundant trash button from top-right of cart items (moved into QuantityControls)
+- Added ChevronRight icon to "Continue Shopping" link
+- Applied proper dark mode support throughout
+- Fixed lint issues: removed unused eslint-disable directive, fixed react-hooks/set-state-in-effect by using fetchKey pattern
+- 0 lint errors
+
+Stage Summary:
+- CartPage has polished UX with Framer Motion animations throughout (enter/exit, bounce, checkmark, savings counter)
+- Quantity controls are refined with circular buttons, confirmation tooltip, and micro-interactions
+- Order summary matches CheckoutPage's polished style (savings banner, free shipping bar, estimated delivery)
+- Desktop sticky sidebar + mobile fixed bottom bar for optimal checkout accessibility
+- Empty cart state includes product recommendations for better conversion
+- Both empty and non-empty states show "You Might Also Like" recommendations
+
+---
+Task ID: 14-15
+Agent: full-stack-developer
+Task: Enhance QuickViewModal and ProfilePage
+
+Work Log:
+- Enhanced QuickViewModal with image gallery navigation (prev/next arrows, image counter, dot indicators, AnimatePresence crossfade transitions)
+- Added sale badge with discount percentage (red badge with Sparkles icon and spring animation)
+- Added animated price display (sale price with spring entrance, strikethrough original price with scaleX animation, savings pill with slide-in)
+- Enhanced Add to Cart button (larger py-3.5, shadow-lg, whileTap scale, checkmark animation on add)
+- Added quantity bounce animation on change (motion.span with spring transition)
+- Added ESC key listener to close modal
+- Added "View Full Details" with hover arrow slide effect
+- Removed unused Loader2 import, added ChevronLeft, ChevronRight, Sparkles icons
+- Cart now passes originalPrice and effectiveDiscount metadata for sale items
+
+- Enhanced ProfilePage with summary stats cards at top (Total Orders, Wishlist Items, Total Spent, Delivered) with staggered animations
+- Replaced User icon avatar with gradient circle showing user initials (6 color variations based on name)
+- Added order filtering (All, Processing, Shipped, Delivered) with pill-style toggle buttons
+- Added relative time format for order dates ("2 days ago", "3 hours ago", etc.)
+- Enhanced order cards with compact product thumbnails, "+X more items" overflow text
+- Added Reorder button for Delivered/Shipped orders with whileHover/whileTap animations
+- Added Settings tab with notification preferences (Email, SMS, Promotional toggles)
+- Added Account Information section in Settings tab
+- Added Delete Account danger zone with red warning styling and confirmation flow
+- Added Framer Motion tab transitions (AnimatePresence with blur+fade variants)
+- Refactored sidebar nav into dynamic tabs array for cleaner rendering
+- Removed Settings page navigation button (now a tab within profile)
+- Added new imports: Bell, Mail, MessageSquare, Tag, RefreshCw, AlertTriangle, DollarSign, CalendarDays
+
+Stage Summary:
+- QuickViewModal now has a richer product preview with image gallery, sale pricing, and polished animations
+- ProfilePage has better visual hierarchy with stats cards, enhanced orders, and a new Settings tab

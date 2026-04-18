@@ -381,8 +381,14 @@ export function CheckoutPage() {
         state: addrData.state,
         zipCode: addrData.zipCode,
         country: addrData.country,
-        subtotal, tax, total: subtotal + tax,
+        subtotal: afterPromoSubtotal,
+        tax,
+        shipping,
+        total,
         paymentMethod: paymentType === 'PAY_ON_RECEIVE' ? 'pay_on_receive' : 'credit_card',
+        promoCodeId: appliedPromoCode?.id || null,
+        promoCode: appliedPromoCode?.code || null,
+        discountTotal: promoDiscount,
       };
 
       const res = await fetch('/api/orders', {

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { Facebook, Instagram, Twitter, Mail, Loader2, Gift, Send, ShieldCheck, Leaf, Recycle, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Facebook, Instagram, Twitter, Mail, Loader2, Gift, Send, ShieldCheck, Leaf, Recycle, Heart, ArrowUp } from 'lucide-react';
 import { useStore } from '@/store/store';
 import { toast } from '@/lib/toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function Footer() {
   const { navigate, setSelectedCategory } = useStore();
@@ -58,19 +59,45 @@ export function Footer() {
     navigate('products');
   };
 
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const footerLinkClass =
-    "hover:text-[#d4a5a5] dark:hover:text-[#d4a5a5] transition-all duration-200 hover:translate-x-1 inline-block";
+    "hover:text-[#d4a5a5] dark:hover:text-[#d4a5a5] transition-all duration-200 hover:translate-x-1 inline-block relative";
+
+  const footerLinkAnimated =
+    "hover:text-[#d4a5a5] dark:hover:text-[#d4a5a5] transition-all duration-200 inline-block relative group";
 
   return (
-    <footer className="bg-[#fef5f1] dark:bg-[#1a1215] mt-auto">
+    <footer className="bg-[#fef5f1] dark:bg-[#1a1215] mt-auto relative">
+      {/* Gradient separator at top of footer */}
+      <div className="h-1 bg-gradient-to-r from-[#d4a5a5]/0 via-[#d4a5a5]/40 dark:via-[#d4a5a5]/20 to-[#d4a5a5]/0" />
+
       {/* Newsletter Section */}
-      <div className="bg-[#f5e6e0] dark:bg-[#2d1f24] py-14">
+      <div className="bg-[#f5e6e0] dark:bg-[#2d1f24] py-14 relative overflow-hidden">
         <div className="container mx-auto px-4 text-center">
-          <Gift
-            size={32}
-            className="mx-auto mb-3 text-[#d4a5a5] dark:text-[#d4a5a5]"
-            strokeWidth={1.5}
-          />
+          <motion.div
+            animate={{ rotate: [0, 5, -5, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <Gift
+              size={32}
+              className="mx-auto mb-3 text-[#d4a5a5] dark:text-[#d4a5a5]"
+              strokeWidth={1.5}
+            />
+          </motion.div>
           <h2 className="text-2xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-1">
             Sign up now &amp; get 10% off
           </h2>
@@ -84,18 +111,24 @@ export function Footer() {
             onSubmit={handleSubscribe}
             className="max-w-md mx-auto flex gap-2"
           >
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 px-5 py-3.5 rounded-full bg-white dark:bg-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:ring-offset-2 focus:ring-offset-[#f5e6e0] dark:focus:ring-offset-[#2d1f24] transition-shadow"
-              required
-            />
-            <button
+            <motion.div className="flex-1 relative" animate={emailFocused ? { scale: 1.02 } : { scale: 1 }} transition={{ duration: 0.2 }}>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                className="w-full px-5 py-3.5 rounded-full bg-white dark:bg-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:ring-offset-2 focus:ring-offset-[#f5e6e0] dark:focus:ring-offset-[#2d1f24] transition-shadow"
+                required
+              />
+            </motion.div>
+            <motion.button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-3.5 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] hover:shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-6 py-3.5 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] hover:shadow-lg hover:shadow-[#d4a5a5]/25 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -108,7 +141,7 @@ export function Footer() {
                   <Send size={15} className="group-hover:translate-x-0.5 transition-transform" />
                 </>
               )}
-            </button>
+            </motion.button>
           </form>
         </div>
       </div>
@@ -149,34 +182,26 @@ export function Footer() {
 
             {/* Social Media */}
             <div className="flex gap-3">
-              <button
-                onClick={() => window.open('https://facebook.com/rarebeauty', '_blank', 'noopener,noreferrer')}
-                className="p-2.5 bg-white dark:bg-[#2d1f24] rounded-full hover:bg-[#d4a5a5] hover:scale-110 hover:shadow-md group transition-all duration-200"
-                aria-label="Facebook"
-              >
-                <Facebook size={18} className="text-[#8b6f63] dark:text-[#e8ddd5] group-hover:text-white transition-colors" />
-              </button>
-              <button
-                onClick={() => window.open('https://instagram.com/rarebeauty', '_blank', 'noopener,noreferrer')}
-                className="p-2.5 bg-white dark:bg-[#2d1f24] rounded-full hover:bg-[#d4a5a5] hover:scale-110 hover:shadow-md group transition-all duration-200"
-                aria-label="Instagram"
-              >
-                <Instagram size={18} className="text-[#8b6f63] dark:text-[#e8ddd5] group-hover:text-white transition-colors" />
-              </button>
-              <button
-                onClick={() => window.open('https://twitter.com/rarebeauty', '_blank', 'noopener,noreferrer')}
-                className="p-2.5 bg-white dark:bg-[#2d1f24] rounded-full hover:bg-[#d4a5a5] hover:scale-110 hover:shadow-md group transition-all duration-200"
-                aria-label="Twitter"
-              >
-                <Twitter size={18} className="text-[#8b6f63] dark:text-[#e8ddd5] group-hover:text-white transition-colors" />
-              </button>
-              <button
-                onClick={() => navigate('contact')}
-                className="p-2.5 bg-white dark:bg-[#2d1f24] rounded-full hover:bg-[#d4a5a5] hover:scale-110 hover:shadow-md group transition-all duration-200"
-                aria-label="Email us"
-              >
-                <Mail size={18} className="text-[#8b6f63] dark:text-[#e8ddd5] group-hover:text-white transition-colors" />
-              </button>
+              {[
+                { icon: Facebook, label: 'Facebook', url: 'https://facebook.com/rarebeauty' },
+                { icon: Instagram, label: 'Instagram', url: 'https://instagram.com/rarebeauty' },
+                { icon: Twitter, label: 'Twitter', url: 'https://twitter.com/rarebeauty' },
+                { icon: Mail, label: 'Email us', action: 'contact' },
+              ].map((social, i) => (
+                <motion.button
+                  key={social.label}
+                  onClick={() => social.action ? navigate(social.action as any) : window.open(social.url!, '_blank', 'noopener,noreferrer')}
+                  className="p-2.5 bg-white dark:bg-[#2d1f24] rounded-full hover:bg-[#d4a5a5] hover:shadow-lg hover:shadow-[#d4a5a5]/20 group transition-all duration-200"
+                  aria-label={social.label}
+                  whileHover={{ scale: 1.15, rotate: 5 }}
+                  whileTap={{ scale: 0.9 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + i * 0.1 }}
+                >
+                  <social.icon size={18} className="text-[#8b6f63] dark:text-[#e8ddd5] group-hover:text-white transition-colors" />
+                </motion.button>
+              ))}
             </div>
           </div>
 
@@ -186,8 +211,9 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-[#8b6f63]/70 dark:text-[#a89898]">
               {['Makeup', 'Skincare', 'Haircare', 'Perfume'].map((cat) => (
                 <li key={cat}>
-                  <button onClick={() => handleShopLink(cat)} className={footerLinkClass}>
+                  <button onClick={() => handleShopLink(cat)} className={footerLinkAnimated}>
                     {cat}
+                    <span className="absolute bottom-0 left-0 w-0 h-px bg-[#d4a5a5] group-hover:w-full transition-all duration-300" />
                   </button>
                 </li>
               ))}
@@ -198,10 +224,10 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-4">Help</h4>
             <ul className="space-y-2 text-sm text-[#8b6f63]/70 dark:text-[#a89898]">
-              <li><button onClick={() => navigate('contact')} className={footerLinkClass}>Contact Us</button></li>
-              <li><button onClick={() => navigate('order-tracking')} className={footerLinkClass}>Track Order</button></li>
-              <li><button onClick={() => navigate('returns-refunds')} className={footerLinkClass}>Returns</button></li>
-              <li><button onClick={() => navigate('help-center')} className={footerLinkClass}>FAQs</button></li>
+              <li><button onClick={() => navigate('contact')} className={footerLinkAnimated}>Contact Us<span className="absolute bottom-0 left-0 w-0 h-px bg-[#d4a5a5] group-hover:w-full transition-all duration-300" /></button></li>
+              <li><button onClick={() => navigate('order-tracking')} className={footerLinkAnimated}>Track Order<span className="absolute bottom-0 left-0 w-0 h-px bg-[#d4a5a5] group-hover:w-full transition-all duration-300" /></button></li>
+              <li><button onClick={() => navigate('returns-refunds')} className={footerLinkAnimated}>Returns<span className="absolute bottom-0 left-0 w-0 h-px bg-[#d4a5a5] group-hover:w-full transition-all duration-300" /></button></li>
+              <li><button onClick={() => navigate('help-center')} className={footerLinkAnimated}>FAQs<span className="absolute bottom-0 left-0 w-0 h-px bg-[#d4a5a5] group-hover:w-full transition-all duration-300" /></button></li>
             </ul>
           </div>
 
@@ -209,10 +235,10 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-4">About</h4>
             <ul className="space-y-2 text-sm text-[#8b6f63]/70 dark:text-[#a89898]">
-              <li><button onClick={() => navigate('contact')} className={footerLinkClass}>Our Story</button></li>
-              <li><button onClick={() => navigate('contact')} className={footerLinkClass}>Sustainability</button></li>
-              <li><button onClick={() => navigate('help-center')} className={footerLinkClass}>Privacy Policy</button></li>
-              <li><button onClick={() => navigate('help-center')} className={footerLinkClass}>Terms of Service</button></li>
+              <li><button onClick={() => navigate('contact')} className={footerLinkAnimated}>Our Story<span className="absolute bottom-0 left-0 w-0 h-px bg-[#d4a5a5] group-hover:w-full transition-all duration-300" /></button></li>
+              <li><button onClick={() => navigate('contact')} className={footerLinkAnimated}>Sustainability<span className="absolute bottom-0 left-0 w-0 h-px bg-[#d4a5a5] group-hover:w-full transition-all duration-300" /></button></li>
+              <li><button onClick={() => navigate('help-center')} className={footerLinkAnimated}>Privacy Policy<span className="absolute bottom-0 left-0 w-0 h-px bg-[#d4a5a5] group-hover:w-full transition-all duration-300" /></button></li>
+              <li><button onClick={() => navigate('help-center')} className={footerLinkAnimated}>Terms of Service<span className="absolute bottom-0 left-0 w-0 h-px bg-[#d4a5a5] group-hover:w-full transition-all duration-300" /></button></li>
             </ul>
           </div>
         </div>
@@ -256,6 +282,23 @@ export function Footer() {
           </p>
         </div>
       </div>
+      {/* Back to Top Button */}
+      <AnimatePresence>
+        {showBackToTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={scrollToTop}
+            className="fixed bottom-6 right-6 z-50 p-3 bg-[#d4a5a5] text-white rounded-full shadow-lg shadow-[#d4a5a5]/30 hover:shadow-xl hover:shadow-[#d4a5a5]/40 transition-shadow cursor-pointer"
+            aria-label="Back to top"
+          >
+            <ArrowUp size={20} />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </footer>
   );
 }

@@ -7,7 +7,7 @@ import {
   Star, ShoppingBag, Heart, Share2, ArrowLeft, Send,
   ChevronLeft, ChevronRight, ChevronDown, Minus, Plus, Check,
   Facebook, Twitter, Truck, RotateCcw, Shield, Clock,
-  Package, Droplets, Leaf, ThumbsUp,
+  Package, Droplets, Leaf, ThumbsUp, X, ZoomIn,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/ProductCard';
@@ -19,6 +19,7 @@ interface Product {
   price: number;
   category: string;
   image: string;
+  images?: string;
   description: string;
   badge?: string;
   rating: number;
@@ -39,14 +40,6 @@ interface Review {
   createdAt: string;
   user: { name: string };
 }
-
-const IMAGE_VARIANTS = [
-  { label: 'Front', filter: 'none' },
-  { label: 'Side', filter: 'brightness(1.05) contrast(1.05)' },
-  { label: 'Detail', filter: 'brightness(0.95) saturate(1.15)' },
-  { label: 'Swatch', filter: 'brightness(1.08) hue-rotate(5deg) saturate(1.1)' },
-  { label: 'Lifestyle', filter: 'brightness(1.02) contrast(0.98)' },
-];
 
 const INGREDIENTS = [
   { name: 'Water (Aqua)', purpose: 'Solvent' },
@@ -104,6 +97,27 @@ export function ProductDetailPage() {
   const [isZooming, setIsZooming] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const imageRef = useRef<HTMLDivElement>(null);
+
+  // Lightbox state
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  // Parse gallery images from product images JSON field
+  const galleryImages = useMemo(() => {
+    if (!product) return [];
+    try {
+      const parsed = product.images ? JSON.parse(product.images) : [];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Deduplicate: put main image first, then unique extras
+        const uniqueUrls = [product.image, ...parsed.filter((url: string) => url !== product.image)];
+        return uniqueUrls.slice(0, 8); // Max 8 images
+      }
+    } catch {
+      // JSON parse failed, fall through
+    }
+    return [product.image];
+  }, [product]);
+
+  const hasMultipleImages = galleryImages.length > 1;
 
   const isWishlisted = product ? wishlistItems.includes(product.id) : false;
 
@@ -273,10 +287,11 @@ export function ProductDetailPage() {
 
   const handleImageNav = useCallback((direction: 'left' | 'right') => {
     setActiveImageIndex((prev) => {
-      if (direction === 'left') return prev === 0 ? IMAGE_VARIANTS.length - 1 : prev - 1;
-      return prev === IMAGE_VARIANTS.length - 1 ? 0 : prev + 1;
+      const len = galleryImages.length;
+      if (direction === 'left') return prev === 0 ? len - 1 : prev - 1;
+      return prev === len - 1 ? 0 : prev + 1;
     });
-  }, []);
+  }, [galleryImages.length]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!imageRef.current) return;
@@ -285,6 +300,21 @@ export function ProductDetailPage() {
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     setZoomPos({ x, y });
   }, []);
+
+  // ESC key to close lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isLightboxOpen) {
+        setIsLightboxOpen(false);
+      }
+      if (isLightboxOpen) {
+        if (e.key === 'ArrowLeft') handleImageNav('left');
+        if (e.key === 'ArrowRight') handleImageNav('right');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, handleImageNav]);
 
   const getStockStatus = () => {
     if (!product || product.stock === undefined) return { text: 'In Stock', color: 'text-green-600', dotColor: 'bg-green-500' };
@@ -383,34 +413,39 @@ export function ProductDetailPage() {
           {/* Main Image with Zoom */}
           <div
             ref={imageRef}
-            className="relative bg-[#fef5f1] rounded-2xl aspect-square overflow-hidden cursor-crosshair group"
+            className="relative bg-[#fef5f1] dark:bg-[#2a2220] rounded-2xl aspect-square overflow-hidden cursor-zoom-in group"
             onMouseEnter={() => setIsZooming(true)}
             onMouseLeave={() => setIsZooming(false)}
             onMouseMove={handleMouseMove}
+            onClick={() => setIsLightboxOpen(true)}
+            role="button"
+            tabIndex={0}
+            aria-label="Open image in fullscreen lightbox"
+            onKeyDown={(e) => { if (e.key === 'Enter') setIsLightboxOpen(true); }}
           >
             <AnimatePresence mode="wait">
               <motion.div
-                key={activeImageIndex}
+                key={galleryImages[activeImageIndex]}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.25 }}
                 className="absolute inset-0"
               >
                 {!imgError ? (
                   <img
-                    src={product.image}
-                    alt={`${product.name} - ${IMAGE_VARIANTS[activeImageIndex].label}`}
-                    className="w-full h-full object-cover transition-transform duration-200 ease-out"
+                    src={galleryImages[activeImageIndex]}
+                    alt={`${product.name} - Image ${activeImageIndex + 1} of ${galleryImages.length}`}
+                    className="w-full h-full object-cover transition-transform duration-200 ease-out select-none"
+                    draggable={false}
                     style={{
                       transform: isZooming ? 'scale(2)' : 'scale(1)',
                       transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                      filter: IMAGE_VARIANTS[activeImageIndex].filter,
                     }}
                     onError={() => setImgError(true)}
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#fef5f1] to-[#f5e6e0] flex items-center justify-center">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#fef5f1] to-[#f5e6e0] dark:from-[#2a2220] dark:to-[#1f1a18] flex items-center justify-center">
                     <span className="text-6xl opacity-30">💄</span>
                   </div>
                 )}
@@ -424,59 +459,68 @@ export function ProductDetailPage() {
               </div>
             )}
 
-            {/* Image variant label */}
-            <div className="absolute bottom-5 left-5 z-10 bg-white/80 backdrop-blur-sm text-[#8b6f63] text-xs px-3 py-1 rounded-full">
-              {IMAGE_VARIANTS[activeImageIndex].label}
-            </div>
+            {/* Image counter */}
+            {hasMultipleImages && (
+              <div className="absolute bottom-5 left-5 z-10 bg-white/80 dark:bg-black/60 backdrop-blur-sm text-[#8b6f63] dark:text-[#e8d5cf] text-xs px-3 py-1 rounded-full">
+                {activeImageIndex + 1} / {galleryImages.length}
+              </div>
+            )}
 
-            {/* Navigation Arrows */}
-            <button
-              onClick={(e) => { e.stopPropagation(); handleImageNav('left'); }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm hover:bg-white rounded-full p-2 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-              aria-label="Previous image"
-            >
-              <ChevronLeft size={20} className="text-[#8b6f63]" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleImageNav('right'); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm hover:bg-white rounded-full p-2 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-              aria-label="Next image"
-            >
-              <ChevronRight size={20} className="text-[#8b6f63]" />
-            </button>
+            {/* Navigation Arrows (only if multiple images) */}
+            {hasMultipleImages && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleImageNav('left'); }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-white/80 dark:bg-black/60 backdrop-blur-sm hover:bg-white dark:hover:bg-black/80 rounded-full p-2 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={20} className="text-[#8b6f63] dark:text-white" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleImageNav('right'); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-white/80 dark:bg-black/60 backdrop-blur-sm hover:bg-white dark:hover:bg-black/80 rounded-full p-2 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={20} className="text-[#8b6f63] dark:text-white" />
+                </button>
+              </>
+            )}
 
-            {/* Zoom hint */}
-            <div className="absolute top-5 right-5 z-10 bg-white/80 backdrop-blur-sm text-[#8b6f63] text-xs px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-              Hover to zoom
+            {/* Zoom & lightbox hint */}
+            <div className="absolute top-5 right-5 z-10 bg-white/80 dark:bg-black/60 backdrop-blur-sm text-[#8b6f63] dark:text-[#e8d5cf] text-xs px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <ZoomIn size={12} />
+              Hover to zoom · Click to expand
             </div>
           </div>
 
-          {/* Thumbnails */}
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {IMAGE_VARIANTS.map((variant, index) => (
-              <button
-                key={variant.label}
-                onClick={() => setActiveImageIndex(index)}
-                className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden transition-all duration-200 border-2 ${
-                  index === activeImageIndex
-                    ? 'border-[#d4a5a5] ring-2 ring-[#d4a5a5]/30'
-                    : 'border-transparent hover:border-[#d4a5a5]/40'
-                }`}
-                aria-label={`View ${variant.label}`}
-              >
-                {!imgError ? (
-                  <img
-                    src={product.image}
-                    alt={variant.label}
-                    className="w-full h-full object-cover"
-                    style={{ filter: variant.filter }}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-[#fef5f1]" />
-                )}
-              </button>
-            ))}
-          </div>
+          {/* Thumbnails (hidden if only 1 image) */}
+          {hasMultipleImages && (
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+              {galleryImages.map((imgUrl, index) => (
+                <button
+                  key={imgUrl}
+                  onClick={() => setActiveImageIndex(index)}
+                  className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden transition-all duration-200 border-2 ${
+                    index === activeImageIndex
+                      ? 'border-[#d4a5a5] ring-2 ring-[#d4a5a5]/30 opacity-100'
+                      : 'border-transparent opacity-50 hover:opacity-80 hover:border-[#d4a5a5]/40'
+                  }`}
+                  aria-label={`View image ${index + 1}`}
+                >
+                  {!imgError ? (
+                    <img
+                      src={imgUrl}
+                      alt={`${product.name} thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      draggable={false}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#fef5f1] dark:bg-[#2a2220]" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         {/* Product Info */}
@@ -1202,6 +1246,107 @@ export function ProductDetailPage() {
           </div>
         </motion.section>
       )}
+
+      {/* Fullscreen Lightbox */}
+      <AnimatePresence>
+        {isLightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center"
+            onClick={() => setIsLightboxOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image lightbox"
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setIsLightboxOpen(false)}
+              className="absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              aria-label="Close lightbox"
+            >
+              <X size={24} />
+            </button>
+
+            {/* Image Counter */}
+            <div className="absolute top-4 left-4 z-50 bg-white/10 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-full">
+              {activeImageIndex + 1} / {galleryImages.length}
+            </div>
+
+            {/* Prev Arrow */}
+            {hasMultipleImages && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleImageNav('left'); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white shadow-lg transition-colors"
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={28} />
+              </button>
+            )}
+
+            {/* Main Lightbox Image */}
+            <motion.div
+              key={galleryImages[activeImageIndex]}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-4xl max-h-[85vh] w-full mx-16"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={galleryImages[activeImageIndex]}
+                alt={`${product.name} - Image ${activeImageIndex + 1}`}
+                className="w-full h-full object-contain rounded-2xl"
+                draggable={false}
+              />
+            </motion.div>
+
+            {/* Next Arrow */}
+            {hasMultipleImages && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleImageNav('right'); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white shadow-lg transition-colors"
+                aria-label="Next image"
+              >
+                <ChevronRight size={28} />
+              </button>
+            )}
+
+            {/* Thumbnail strip at bottom of lightbox */}
+            {hasMultipleImages && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-2 max-w-[80vw] overflow-x-auto px-2">
+                {galleryImages.map((imgUrl, index) => (
+                  <button
+                    key={imgUrl}
+                    onClick={(e) => { e.stopPropagation(); setActiveImageIndex(index); }}
+                    className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden transition-all duration-200 border-2 ${
+                      index === activeImageIndex
+                        ? 'border-white opacity-100 scale-105'
+                        : 'border-white/30 opacity-50 hover:opacity-80 hover:border-white/60'
+                    }`}
+                    aria-label={`Go to image ${index + 1}`}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      draggable={false}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Keyboard hint */}
+            <div className="absolute bottom-6 right-6 z-50 text-white/40 text-xs hidden sm:block">
+              ESC to close · Arrow keys to navigate
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

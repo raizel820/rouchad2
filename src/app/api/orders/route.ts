@@ -45,7 +45,11 @@ export async function POST(request: Request) {
       subtotal,
       tax,
       total,
+      shipping,
       paymentMethod,
+      promoCodeId,
+      promoCode,
+      discountTotal,
     } = body;
 
     const orderNumber = 'RB' + Date.now().toString().slice(-8);
@@ -58,7 +62,10 @@ export async function POST(request: Request) {
         status: 'Processing',
         subtotal,
         tax,
-        shipping: 0,
+        discountTotal: discountTotal || 0,
+        shipping: shipping || 0,
+        promoCode: promoCode || null,
+        promoCodeId: promoCodeId || null,
         total,
         paymentMethod: paymentMethod || 'credit_card',
         firstName,
@@ -82,6 +89,14 @@ export async function POST(request: Request) {
       },
       include: { orderItems: true },
     });
+
+    // Increment promo code usage if a promo code was applied
+    if (promoCodeId) {
+      await db.promoCode.update({
+        where: { id: promoCodeId },
+        data: { currentUses: { increment: 1 } },
+      });
+    }
 
     // Update product sales
     for (const item of items) {
