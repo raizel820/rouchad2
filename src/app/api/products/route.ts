@@ -41,7 +41,57 @@ export async function GET(request: Request) {
         break;
     }
 
-    return NextResponse.json(products);
+    // Get active sales for discount calculation
+    const now = new Date();
+    const activeSales = await db.sale.findMany({
+      where: {
+        isActive: true,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      include: { categories: true },
+    });
+
+    const categoryDiscounts: Record<string, number> = {};
+    const categorySaleNames: Record<string, string> = {};
+    for (const sale of activeSales) {
+      for (const cat of sale.categories) {
+        if ((categoryDiscounts[cat.categoryName] || 0) < cat.discountPercentage) {
+          categoryDiscounts[cat.categoryName] = cat.discountPercentage;
+          categorySaleNames[cat.categoryName] = sale.name;
+        }
+      }
+    }
+
+    // Enrich products with discount info
+    const enrichedProducts = products.map(product => {
+      const categoryDiscount = categoryDiscounts[product.category] || 0;
+      const productDiscount = product.discountPercentage || 0;
+      const effectiveDiscount = Math.max(categoryDiscount, productDiscount);
+
+      if (effectiveDiscount > 0) {
+        const discountedPrice = Math.round((product.price * (1 - effectiveDiscount / 100)) * 100) / 100;
+        return {
+          ...product,
+          discountedPrice,
+          effectiveDiscount,
+          savings: Math.round((product.price - discountedPrice) * 100) / 100,
+          saleName: categorySaleNames[product.category] || 'Special Offer',
+          onSale: true,
+        };
+      }
+
+      return {
+        ...product,
+        discountedPrice: product.price,
+        effectiveDiscount: 0,
+        savings: 0,
+        saleName: null,
+        onSale: false,
+      };
+    });
+
+    return NextResponse.json(enrichedProducts);
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });

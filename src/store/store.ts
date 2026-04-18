@@ -31,10 +31,13 @@ export interface CartItem {
   id: string;
   name: string;
   price: number;
+  originalPrice?: number;
   image: string;
   category: string;
   quantity: number;
   selectedColor: string;
+  saleName?: string | null;
+  effectiveDiscount?: number;
 }
 
 export interface Product {
@@ -47,6 +50,11 @@ export interface Product {
   badge?: string;
   rating: number;
   reviewCount: number;
+  discountedPrice?: number;
+  effectiveDiscount?: number;
+  savings?: number;
+  saleName?: string | null;
+  onSale?: boolean;
 }
 
 export interface User {
@@ -56,6 +64,21 @@ export interface User {
   phone?: string;
   birthdate?: string;
   role: string;
+}
+
+export interface AppliedPromoCode {
+  id: string;
+  code: string;
+  discountType: string;
+  discountValue: number;
+  discountAmount: number;
+  description: string;
+}
+
+export interface ShopSettings {
+  shopName: string;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
 }
 
 interface StoreState {
@@ -89,6 +112,12 @@ interface StoreState {
   // Toasts
   toasts: ToastItem[];
 
+  // Promo Code
+  appliedPromoCode: AppliedPromoCode | null;
+
+  // Shop Settings
+  shopSettings: ShopSettings;
+
   // Actions
   navigate: (page: Page) => void;
   navigateToProfile: (tab?: ProfileTab) => void;
@@ -103,6 +132,7 @@ interface StoreState {
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
   getCartTotal: () => number;
+  getCartOriginalTotal: () => number;
   getCartCount: () => number;
 
   login: (user: User) => void;
@@ -122,6 +152,11 @@ interface StoreState {
 
   addToast: (message: string, type?: ToastType) => void;
   removeToast: (id: number) => void;
+
+  applyPromoCode: (promo: AppliedPromoCode) => void;
+  removePromoCode: () => void;
+
+  setShopSettings: (settings: ShopSettings) => void;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -154,6 +189,16 @@ export const useStore = create<StoreState>((set, get) => ({
 
   // Toast defaults
   toasts: [],
+
+  // Promo Code defaults
+  appliedPromoCode: null,
+
+  // Shop Settings defaults
+  shopSettings: {
+    shopName: 'Rare Beauty',
+    logoUrl: null,
+    faviconUrl: null,
+  },
 
   // Navigation actions
   navigate: (page: Page) => {
@@ -196,9 +241,12 @@ export const useStore = create<StoreState>((set, get) => ({
       ),
     }));
   },
-  clearCart: () => set({ cartItems: [] }),
+  clearCart: () => set({ cartItems: [], appliedPromoCode: null }),
   getCartTotal: () => {
     return get().cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  },
+  getCartOriginalTotal: () => {
+    return get().cartItems.reduce((total, item) => total + (item.originalPrice || item.price) * item.quantity, 0);
   },
   getCartCount: () => {
     return get().cartItems.reduce((count, item) => count + item.quantity, 0);
@@ -258,4 +306,11 @@ export const useStore = create<StoreState>((set, get) => ({
   removeToast: (id: number) => {
     set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
   },
+
+  // Promo Code actions
+  applyPromoCode: (promo: AppliedPromoCode) => set({ appliedPromoCode: promo }),
+  removePromoCode: () => set({ appliedPromoCode: null }),
+
+  // Shop Settings actions
+  setShopSettings: (settings: ShopSettings) => set({ shopSettings: settings }),
 }));

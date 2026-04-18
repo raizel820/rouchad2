@@ -25,6 +25,11 @@ interface Product {
   reviewCount: number;
   stock?: number;
   sales?: number;
+  discountedPrice?: number;
+  effectiveDiscount?: number;
+  savings?: number;
+  saleName?: string | null;
+  onSale?: boolean;
 }
 
 interface Review {
@@ -156,17 +161,20 @@ export function ProductDetailPage() {
   const handleAddToCart = useCallback(() => {
     if (!product) return;
     setAddingToCart(true);
-    // Simulate a small delay for the loading animation
+    const displayPrice = product.onSale && product.discountedPrice ? product.discountedPrice : product.price;
     setTimeout(() => {
       for (let i = 0; i < quantity; i++) {
         const cartItem: CartItem = {
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: displayPrice,
+          originalPrice: product.onSale ? product.price : undefined,
           image: product.image,
           category: product.category,
           quantity: 1,
           selectedColor: selectedColor || 'default',
+          saleName: product.saleName,
+          effectiveDiscount: product.effectiveDiscount,
         };
         addToCart(cartItem);
       }
@@ -179,15 +187,18 @@ export function ProductDetailPage() {
 
   const handleBuyNow = useCallback(() => {
     if (!product) return;
-    // Add to cart then navigate to checkout
+    const displayPrice = product.onSale && product.discountedPrice ? product.discountedPrice : product.price;
     const cartItem: CartItem = {
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: displayPrice,
+      originalPrice: product.onSale ? product.price : undefined,
       image: product.image,
       category: product.category,
       quantity,
       selectedColor: selectedColor || 'default',
+      saleName: product.saleName,
+      effectiveDiscount: product.effectiveDiscount,
     };
     addToCart(cartItem);
     navigate('checkout');
@@ -455,7 +466,27 @@ export function ProductDetailPage() {
           </div>
 
           {/* Price */}
-          <div className="text-3xl lg:text-4xl text-[#8b6f63] font-semibold mb-6">${product.price.toFixed(2)}</div>
+          <div className="mb-6">
+            {product.onSale && product.effectiveDiscount && product.effectiveDiscount > 0 ? (
+              <div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-3xl lg:text-4xl text-[#8b6f63] font-semibold">${(product.discountedPrice || product.price).toFixed(2)}</span>
+                  <span className="text-xl text-[#8b6f63]/40 line-through">${product.price.toFixed(2)}</span>
+                  <span className="px-3 py-1 bg-red-500 text-white text-sm rounded-full font-semibold flex items-center gap-1">
+                    -{product.effectiveDiscount}%
+                  </span>
+                  {product.saleName && (
+                    <span className="px-3 py-1 bg-red-50 text-red-600 text-sm rounded-full font-medium border border-red-200">
+                      {product.saleName}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-green-600 font-medium mt-1">You save ${(product.savings || 0).toFixed(2)}</p>
+              </div>
+            ) : (
+              <span className="text-3xl lg:text-4xl text-[#8b6f63] font-semibold">${product.price.toFixed(2)}</span>
+            )}
+          </div>
 
           {/* Stock Status */}
           <div className="flex items-center gap-2 mb-6">

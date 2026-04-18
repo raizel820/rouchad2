@@ -1,14 +1,14 @@
 'use client';
 
 import { useStore } from '@/store/store';
-import { Trash2, Plus, Minus, ShoppingBag, Heart, Shield, RotateCcw, Truck } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, Heart, Shield, RotateCcw, Truck, Percent } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const FREE_SHIPPING_THRESHOLD = 50;
 
 export function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, getCartTotal, navigate, toggleWishlist, isWishlisted } = useStore();
+  const { cartItems, removeFromCart, updateQuantity, getCartTotal, getCartOriginalTotal, navigate, toggleWishlist, isWishlisted } = useStore();
 
   const handleRemove = (productId: string, productName: string, selectedColor?: string) => {
     removeFromCart(productId, selectedColor);
@@ -30,6 +30,8 @@ export function CartPage() {
   };
 
   const subtotal = getCartTotal();
+  const originalSubtotal = getCartOriginalTotal();
+  const totalSavings = Math.round((originalSubtotal - subtotal) * 100) / 100;
   const tax = subtotal * 0.1;
   const total = subtotal + tax;
   const shippingProgress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
@@ -100,78 +102,96 @@ export function CartPage() {
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
           <AnimatePresence>
-            {cartItems.map((item) => (
-              <motion.div
-                key={item.id}
-                className="bg-white dark:bg-[#2d1f24] rounded-xl p-4 shadow-sm border border-[#f5e6e0]/50 dark:border-[#3d2f34] flex gap-4"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20, height: 0 }}
-              >
-                <div className="w-24 h-24 bg-[#fef5f1] dark:bg-[#1a1215] rounded-lg overflow-hidden flex-shrink-0">
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                </div>
-
-                <div className="flex-1 flex flex-col">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <button
-                        onClick={() => { useStore.getState().setProductId(item.id); navigate('product-detail'); }}
-                        className="text-[#8b6f63] dark:text-[#e8ddd5] hover:text-[#d4a5a5] transition-colors font-medium text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#8b6f63] dark:text-[#e8ddd5] font-medium">{item.name}</span>
-                          {item.selectedColor && item.selectedColor !== 'default' && (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#fef5f1] dark:bg-[#1a1215] rounded-full">
-                              <span className="w-3.5 h-3.5 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
-                              <span className="text-xs text-[#8b6f63]/60 dark:text-[#e8ddd5]/50 font-mono">{item.selectedColor}</span>
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                      <p className="text-sm text-[#8b6f63]/70 dark:text-[#e8ddd5]/60">{item.category}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleSaveForLater(item.id, item.name)}
-                        className="p-2 text-[#8b6f63]/50 dark:text-[#e8ddd5]/40 hover:text-[#d4a5a5] transition-colors"
-                        title="Save for later"
-                      >
-                        <Heart size={18} className={isWishlisted(item.id) ? 'fill-[#d4a5a5] text-[#d4a5a5]' : ''} />
-                      </button>
-                      <button
-                        onClick={() => handleRemove(item.id, item.name, item.selectedColor)}
-                        className="p-2 text-[#8b6f63]/50 dark:text-[#e8ddd5]/40 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+            {cartItems.map((item) => {
+              const hasDiscount = item.originalPrice && item.originalPrice > item.price;
+              return (
+                <motion.div
+                  key={`${item.id}-${item.selectedColor}`}
+                  className="bg-white dark:bg-[#2d1f24] rounded-xl p-4 shadow-sm border border-[#f5e6e0]/50 dark:border-[#3d2f34] flex gap-4"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20, height: 0 }}
+                >
+                  <div className="w-24 h-24 bg-[#fef5f1] dark:bg-[#1a1215] rounded-lg overflow-hidden flex-shrink-0 relative">
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    {item.effectiveDiscount && item.effectiveDiscount > 0 && (
+                      <div className="absolute top-1 left-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5">
+                        <Percent size={8} />
+                        {item.effectiveDiscount}%
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex justify-between items-end mt-auto">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1, item.selectedColor)}
-                        className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#1a1215] text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#f5e6e0] dark:hover:bg-[#3d2f34] transition-colors flex items-center justify-center"
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <span className="w-8 text-center text-[#8b6f63] dark:text-[#e8ddd5] font-medium">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1, item.selectedColor)}
-                        className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#1a1215] text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#f5e6e0] dark:hover:bg-[#3d2f34] transition-colors flex items-center justify-center"
-                      >
-                        <Plus size={14} />
-                      </button>
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <button
+                          onClick={() => { useStore.getState().setProductId(item.id); navigate('product-detail'); }}
+                          className="text-[#8b6f63] dark:text-[#e8ddd5] hover:text-[#d4a5a5] transition-colors font-medium text-left"
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[#8b6f63] dark:text-[#e8ddd5] font-medium">{item.name}</span>
+                            {item.selectedColor && item.selectedColor !== 'default' && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#fef5f1] dark:bg-[#1a1215] rounded-full">
+                                <span className="w-3.5 h-3.5 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
+                                <span className="text-xs text-[#8b6f63]/60 dark:text-[#e8ddd5]/50 font-mono">{item.selectedColor}</span>
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        <p className="text-sm text-[#8b6f63]/70 dark:text-[#e8ddd5]/60">{item.category}</p>
+                        {item.saleName && (
+                          <p className="text-xs text-red-500 font-medium mt-0.5">{item.saleName}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleSaveForLater(item.id, item.name)}
+                          className="p-2 text-[#8b6f63]/50 dark:text-[#e8ddd5]/40 hover:text-[#d4a5a5] transition-colors"
+                          title="Save for later"
+                        >
+                          <Heart size={18} className={isWishlisted(item.id) ? 'fill-[#d4a5a5] text-[#d4a5a5]' : ''} />
+                        </button>
+                        <button
+                          onClick={() => handleRemove(item.id, item.name, item.selectedColor)}
+                          className="p-2 text-[#8b6f63]/50 dark:text-[#e8ddd5]/40 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg text-[#8b6f63] dark:text-[#e8ddd5] font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
-                      {item.quantity > 1 && <p className="text-xs text-[#8b6f63]/50 dark:text-[#e8ddd5]/40">${item.price.toFixed(2)} each</p>}
+
+                    <div className="flex justify-between items-end mt-auto">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity - 1, item.selectedColor)}
+                          className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#1a1215] text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#f5e6e0] dark:hover:bg-[#3d2f34] transition-colors flex items-center justify-center"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="w-8 text-center text-[#8b6f63] dark:text-[#e8ddd5] font-medium">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity + 1, item.selectedColor)}
+                          className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#1a1215] text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#f5e6e0] dark:hover:bg-[#3d2f34] transition-colors flex items-center justify-center"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg text-[#8b6f63] dark:text-[#e8ddd5] font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                        {hasDiscount && (
+                          <div className="flex items-center gap-1 justify-end">
+                            <span className="text-xs text-[#8b6f63]/40 line-through">${(item.originalPrice! * item.quantity).toFixed(2)}</span>
+                            <span className="text-xs text-green-600 font-medium">Save ${(item.originalPrice! - item.price).toFixed(2)}</span>
+                          </div>
+                        )}
+                        {item.quantity > 1 && !hasDiscount && <p className="text-xs text-[#8b6f63]/50 dark:text-[#e8ddd5]/40">${item.price.toFixed(2)} each</p>}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
 
@@ -184,6 +204,19 @@ export function CartPage() {
             transition={{ delay: 0.2 }}
           >
             <h2 className="text-xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-6">Order Summary</h2>
+
+            {/* Savings Banner */}
+            {totalSavings > 0 && (
+              <motion.div
+                className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <p className="text-sm text-green-700 dark:text-green-400 font-medium text-center">
+                  🎉 You&apos;re saving <span className="font-bold">${totalSavings.toFixed(2)}</span> on this order!
+                </p>
+              </motion.div>
+            )}
 
             {/* Free Shipping Progress Bar */}
             <div className="mb-6">
@@ -218,10 +251,22 @@ export function CartPage() {
             </div>
 
             <div className="space-y-3 mb-6">
+              {totalSavings > 0 && (
+                <div className="flex justify-between text-[#8b6f63] dark:text-[#e8ddd5]">
+                  <span className="text-[#8b6f63]/60 dark:text-[#e8ddd5]/50">Original Price</span>
+                  <span className="line-through text-[#8b6f63]/50 dark:text-[#e8ddd5]/40">${originalSubtotal.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-[#8b6f63] dark:text-[#e8ddd5]">
                 <span>Subtotal</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
+              {totalSavings > 0 && (
+                <div className="flex justify-between text-green-600 dark:text-green-400">
+                  <span className="font-medium">Total Savings</span>
+                  <span className="font-medium">-${totalSavings.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-[#8b6f63] dark:text-[#e8ddd5]">
                 <span>Shipping</span>
                 <span className={qualifiesForFreeShipping ? 'text-green-600 dark:text-green-400' : ''}>

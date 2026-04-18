@@ -15,6 +15,9 @@ import {
   MessageCircle,
   ArrowRight,
   BadgeCheck,
+  Percent,
+  Sparkles,
+  Flame,
 } from 'lucide-react';
 
 interface Product {
@@ -59,11 +62,20 @@ const features = [
 
 const marqueeItems = ['Vogue', 'Elle', 'Allure', 'Harper\'s Bazaar', 'Cosmopolitan', 'Glamour', 'InStyle', 'Marie Claire'];
 
+interface SaleInfo {
+  name: string;
+  maxDiscount: number;
+}
+
 export function HomePage() {
-  const { navigate, setSelectedCategory } = useStore();
+  const { navigate, setSelectedCategory, user, isAuthenticated, recentlyViewed, wishlistItems } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saleProducts, setSaleProducts] = useState<Product[]>([]);
+  const [saleInfo, setSaleInfo] = useState<SaleInfo[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
 
+  // Fetch all products
   useEffect(() => {
     fetch('/api/products')
       .then((r) => r.json())
@@ -73,6 +85,106 @@ export function HomePage() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  // Fetch active sales
+  useEffect(() => {
+    fetch('/api/sales/active')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.products && data.products.length > 0) {
+          setSaleProducts(data.products);
+          const sales = data.sales || [];
+          const discounts = data.categoryDiscounts || {};
+          // Build sale info from sales data
+          const infoList: SaleInfo[] = sales.map((s: { name: string; discountPercentage?: number; category?: string }) => ({
+            name: s.name || 'Special Offers',
+            maxDiscount: s.discountPercentage || Object.values(discounts).reduce((max: number, d: unknown) => Math.max(max, typeof d === 'number' ? d : 0), 0),
+          }));
+          // If no sale names found, derive from category discounts
+          if (infoList.length === 0 && Object.keys(discounts).length > 0) {
+            const maxDisc = Math.max(...Object.values(discounts).map((d) => typeof d === 'number' ? d : 0));
+            infoList.push({ name: 'Special Offers', maxDiscount: maxDisc });
+          }
+          setSaleInfo(infoList);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Helper to fetch recommended products based on collected IDs
+  const fetchRecommendations = (productIds: Set<string>) => {
+    if (productIds.size === 0) {
+      // No history — show trending/popular (highest rated) products
+      fetch('/api/products?sortBy=rating&limit=4')
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setRecommendedProducts(data.slice(0, 4));
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
+    // Fetch full product data for collected IDs
+    const ids = Array.from(productIds);
+    fetch('/api/products')
+      .then((r) => r.json())
+      .then((allProducts) => {
+        if (!Array.isArray(allProducts)) return;
+        // Get products from history, then fill remainder with highest-rated
+        const historyProducts = allProducts.filter((p: Product) => ids.includes(p.id));
+        const others = allProducts.filter((p: Product) => !ids.includes(p.id)).sort((a: Product, b: Product) => b.rating - a.rating);
+        const combined = [...historyProducts, ...others].slice(0, 4);
+        if (combined.length > 0) {
+          setRecommendedProducts(combined);
+        }
+      })
+      .catch(() => {});
+  };
+
+  // Fetch recommended products
+  useEffect(() => {
+    const uniqueIds = new Set<string>();
+
+    // Add wishlist items
+    wishlistItems.forEach((id) => uniqueIds.add(id));
+
+    // Add recently viewed product IDs
+    recentlyViewed.forEach((p) => uniqueIds.add(p.id));
+
+    if (isAuthenticated && user) {
+      // Fetch orders and wishlist from API for authenticated users
+      const fetchOrders = fetch(`/api/orders?userId=${user.id}`)
+        .then((r) => r.json())
+        .then((orders) => {
+          if (Array.isArray(orders)) {
+            orders.forEach((order: { items?: { productId: string }[] }) => {
+              if (order.items) {
+                order.items.forEach((item) => uniqueIds.add(item.productId));
+              }
+            });
+          }
+        })
+        .catch(() => {});
+
+      const fetchWishlist = fetch(`/api/wishlist?userId=${user.id}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            data.forEach((item: { productId: string }) => uniqueIds.add(item.productId));
+          }
+        })
+        .catch(() => {});
+
+      Promise.all([fetchOrders, fetchWishlist]).then(() => {
+        fetchRecommendations(uniqueIds);
+      });
+    } else {
+      // For guest users, just use recently viewed from store
+      fetchRecommendations(uniqueIds);
+    }
+  }, [isAuthenticated, user, wishlistItems.length, recentlyViewed.length]);
 
   const featuredProducts = products.slice(0, 4);
   const categories = ['Makeup', 'Skincare', 'Haircare', 'Perfume'];
@@ -165,6 +277,67 @@ export function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Special Offers / Sale Section */}
+      {saleProducts.length > 0 && (
+        <section className="container mx-auto px-4 py-12">
+          <motion.div
+            className="text-center mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-500/10 rounded-full mb-4">
+              <Flame size={18} className="text-red-500" />
+              <span className="text-sm font-medium text-red-600 dark:text-red-400">Limited Time</span>
+            </div>
+            <h2 className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
+              {saleInfo.length > 0 && saleInfo[0].name ? saleInfo[0].name : 'Special Offers'}
+            </h2>
+            <motion.div
+              className="h-[2px] bg-gradient-to-r from-transparent via-red-400 to-transparent mx-auto mt-4 mb-3"
+              initial={{ width: 0 }}
+              whileInView={{ width: '60%' }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+            />
+            {/* Sale badges showing discount percentages */}
+            <div className="flex flex-wrap justify-center gap-3 mt-4">
+              {saleInfo.map((info, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm rounded-full font-medium shadow-sm"
+                >
+                  <Percent size={14} />
+                  Up to {info.maxDiscount}% OFF
+                </span>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Horizontal scrollable product list */}
+          <div className="relative">
+            <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin">
+              {saleProducts.map((product, idx) => (
+                <motion.div
+                  key={product.id}
+                  className="flex-shrink-0 w-[220px] sm:w-[240px] snap-start"
+                  initial={{ opacity: 0, x: 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: 0.08 * idx }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </div>
+            {/* Fade edges */}
+            <div className="absolute top-0 left-0 w-8 h-full bg-gradient-to-r from-[#fef5f1] dark:from-[#0a080a] to-transparent pointer-events-none" />
+            <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-[#fef5f1] dark:from-[#0a080a] to-transparent pointer-events-none" />
+          </div>
+        </section>
+      )}
 
       {/* Featured Products */}
       <section className="container mx-auto px-4 py-12">
@@ -298,6 +471,63 @@ export function HomePage() {
 
       {/* Recently Viewed */}
       <RecentlyViewedSection />
+
+      {/* Recommended For You */}
+      {recommendedProducts.length > 0 && (
+        <section className="container mx-auto px-4 py-12">
+          <motion.div
+            className="text-center mb-10"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#fef5f1] dark:bg-[#3d2f34] rounded-full mb-4">
+              <Sparkles size={16} className="text-[#d4a5a5]" />
+              <span className="text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5]/60 uppercase tracking-wider">Personalized</span>
+            </div>
+            <h2 className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
+              {isAuthenticated && (wishlistItems.length > 0 || recentlyViewed.length > 0) ? 'Recommended For You' : 'Trending Now'}
+            </h2>
+            <p className="text-sm text-[#8b6f63]/60 dark:text-[#e8ddd5]/40">
+              {isAuthenticated && (wishlistItems.length > 0 || recentlyViewed.length > 0)
+                ? 'Based on your browsing and wishlist'
+                : 'Most loved by our customers'}
+            </p>
+            <motion.div
+              className="h-[2px] bg-gradient-to-r from-transparent via-[#d4a5a5] to-transparent mx-auto mt-4"
+              initial={{ width: 0 }}
+              whileInView={{ width: '50%' }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+            />
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {recommendedProducts.map((product, idx) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.08 * idx }}
+              >
+                <ProductCard product={product} />
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <button
+              onClick={() => handleCategoryClick('All')}
+              className="inline-flex items-center gap-2 px-8 py-3 border-2 border-[#d4a5a5] text-[#d4a5a5] rounded-full hover:bg-[#d4a5a5] hover:text-white transition-all active:scale-95"
+            >
+              {isAuthenticated ? 'Discover More' : 'Explore All Products'}
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Testimonials */}
       <section className="bg-[#fef5f1] dark:bg-[#1a1215] py-16">

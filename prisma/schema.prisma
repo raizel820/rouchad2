@@ -67,24 +67,26 @@ model Category {
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  name        String
-  price       Float
-  category    String
-  image       String
-  description String
-  ingredients String?
-  colors      String?
-  badge       String?
-  rating      Float    @default(0)
-  reviewCount Int      @default(0)
-  stock       Int      @default(50)
-  sales       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  orderItems  OrderItem[]
-  reviewsList Review[]
-  wishlist    Wishlist[]
+  id                String   @id @default(cuid())
+  name              String
+  price             Float
+  category          String
+  image             String
+  images            String?
+  description       String
+  ingredients       String?
+  colors            String?
+  badge             String?
+  discountPercentage Float    @default(0)
+  rating            Float    @default(0)
+  reviewCount       Int      @default(0)
+  stock             Int      @default(50)
+  sales             Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  orderItems        OrderItem[]
+  reviewsList       Review[]
+  wishlist          Wishlist[]
 }
 
 model Order {
@@ -95,8 +97,11 @@ model Order {
   status         String     @default("Processing")
   total          Float
   subtotal       Float
+  discountTotal  Float      @default(0)
   tax            Float
   shipping       Float      @default(0)
+  promoCode      String?
+  promoCodeId    String?
   firstName      String
   lastName       String
   email          String
@@ -114,14 +119,16 @@ model Order {
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float
-  color     String?
+  id             String  @id @default(cuid())
+  orderId        String
+  order          Order   @relation(fields: [orderId], references: [id])
+  productId      String
+  product        Product @relation(fields: [productId], references: [id])
+  quantity       Int
+  price          Float
+  originalPrice  Float    @default(0)
+  discountAmount Float    @default(0)
+  color          String?
 }
 
 model Review {
@@ -148,4 +155,52 @@ model Newsletter {
   id        String   @id @default(cuid())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+model ShopSettings {
+  id         String   @id @default(cuid())
+  shopName   String   @default("Rare Beauty")
+  logoUrl    String?
+  faviconUrl String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Sale {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  categories  SaleCategory[]
+  promoCodes  PromoCode[]
+}
+
+model SaleCategory {
+  id                String @id @default(cuid())
+  saleId            String
+  sale              Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  categoryName      String
+  discountPercentage Float
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model PromoCode {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  discountType     String   @default("percentage")
+  discountValue    Float
+  minOrderAmount   Float    @default(0)
+  maxUses          Int      @default(0)
+  currentUses      Int      @default(0)
+  isValid          Boolean  @default(true)
+  expiresAt        DateTime?
+  saleId           String?
+  sale             Sale?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
 }

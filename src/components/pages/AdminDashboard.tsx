@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/store';
 import {
   Package,
@@ -23,6 +23,18 @@ import {
   FileText,
   Filter,
   Check,
+  Percent,
+  Settings,
+  Image,
+  Upload,
+  Link,
+  Calendar,
+  ToggleLeft,
+  ToggleRight,
+  Ticket,
+  Store,
+  Globe,
+  ImageIcon,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,6 +43,8 @@ interface OrderItem {
   id: string;
   quantity: number;
   price: number;
+  originalPrice?: number;
+  discountAmount?: number;
   color?: string | null;
   product?: { name: string; image: string };
 }
@@ -41,8 +55,10 @@ interface Order {
   status: string;
   total: number;
   subtotal: number;
+  discountTotal: number;
   tax: number;
   shipping: number;
+  promoCode?: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -53,6 +69,7 @@ interface Order {
   zipCode: string;
   country: string;
   trackingNumber?: string;
+  paymentMethod?: string;
   createdAt: string;
   orderItems: OrderItem[];
 }
@@ -63,10 +80,12 @@ interface Product {
   price: number;
   category: string;
   image: string;
+  images?: string | null;
   description: string;
   ingredients?: string | null;
   colors?: string | null;
   badge?: string;
+  discountPercentage: number;
   rating: number;
   reviewCount: number;
   stock: number;
@@ -94,6 +113,49 @@ interface Category {
   createdAt: string;
 }
 
+interface SaleCategory {
+  id: string;
+  saleId: string;
+  categoryName: string;
+  discountPercentage: number;
+}
+
+interface Sale {
+  id: string;
+  name: string;
+  description?: string | null;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  categories: SaleCategory[];
+  promoCodes: PromoCode[];
+}
+
+interface PromoCode {
+  id: string;
+  code: string;
+  discountType: string;
+  discountValue: number;
+  minOrderAmount: number;
+  maxUses: number;
+  currentUses: number;
+  isValid: boolean;
+  expiresAt?: string | null;
+  saleId?: string | null;
+  sale?: Sale | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ShopSettings {
+  id: string;
+  shopName: string;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
+}
+
 const PRESET_COLORS = [
   '#FF69B4', '#FFB6C1', '#DB7093', '#C71585', '#8B4513',
   '#D2691E', '#F4A460', '#DEB887', '#FFE4B5', '#FFA07A',
@@ -106,7 +168,7 @@ const PRESET_COLORS = [
 
 export function AdminDashboard() {
   const { user, navigate } = useStore();
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'customers'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'customers' | 'sales' | 'promo-codes' | 'settings'>('overview');
   const [loading, setLoading] = useState(true);
 
   // Data
@@ -118,6 +180,9 @@ export function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
+  const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
 
   // Search & filter
   const [orderSearch, setOrderSearch] = useState('');
@@ -135,16 +200,48 @@ export function AdminDashboard() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState({
-    name: '', price: '', category: '', image: '', description: '', ingredients: '', colors: [], badge: '', stock: '50',
+    name: '', price: '', category: '', image: '', imageMode: 'url' as 'url' | 'upload',
+    images: [] as string[], imageGalleryMode: 'url' as 'url' | 'upload',
+    description: '', ingredients: '', colors: [] as string[], badge: '', stock: '50', discountPercentage: '0',
   });
   const [productSaving, setProductSaving] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<{ type: 'product' | 'customer' | 'category'; id: string; name: string } | null>(null);
+  const [productUploading, setProductUploading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'product' | 'customer' | 'category' | 'sale' | 'promo-code'; id: string; name: string } | null>(null);
 
   // Category modal
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '', image: '' });
   const [categorySaving, setCategorySaving] = useState(false);
+
+  // Sale modal
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [saleForm, setSaleForm] = useState({
+    name: '', description: '', startDate: '', endDate: '', isActive: false,
+    categoryDiscounts: [] as { categoryName: string; discountPercentage: string }[],
+  });
+  const [saleSaving, setSaleSaving] = useState(false);
+
+  // Promo Code modal
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<PromoCode | null>(null);
+  const [promoForm, setPromoForm] = useState({
+    code: '', discountType: 'percentage', discountValue: '', minOrderAmount: '0',
+    maxUses: '0', isValid: true, expiresAt: '', saleId: '',
+  });
+  const [promoSaving, setPromoSaving] = useState(false);
+
+  // Settings
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [faviconUploading, setFaviconUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
+
+  // Product upload refs
+  const productImageInputRef = useRef<HTMLInputElement>(null);
+  const galleryImageInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -158,11 +255,25 @@ export function AdminDashboard() {
     } catch {
       toast('Failed to load admin data', 'error');
     }
-    // Fetch categories
     try {
       const catRes = await fetch('/api/admin/categories');
       const catData = await catRes.json();
       if (Array.isArray(catData)) setCategories(catData);
+    } catch {}
+    try {
+      const salesRes = await fetch('/api/admin/sales');
+      const salesData = await salesRes.json();
+      if (Array.isArray(salesData)) setSales(salesData);
+    } catch {}
+    try {
+      const promoRes = await fetch('/api/admin/promo-codes');
+      const promoData = await promoRes.json();
+      if (Array.isArray(promoData)) setPromoCodes(promoData);
+    } catch {}
+    try {
+      const settingsRes = await fetch('/api/admin/settings');
+      const settingsData = await settingsRes.json();
+      if (settingsData) setShopSettings(settingsData);
     } catch {}
     setLoading(false);
   };
@@ -192,6 +303,27 @@ export function AdminDashboard() {
           if (Array.isArray(catData)) setCategories(catData);
         } catch {}
       }
+      if (!cancelled) {
+        try {
+          const salesRes = await fetch('/api/admin/sales');
+          const salesData = await salesRes.json();
+          if (Array.isArray(salesData)) setSales(salesData);
+        } catch {}
+      }
+      if (!cancelled) {
+        try {
+          const promoRes = await fetch('/api/admin/promo-codes');
+          const promoData = await promoRes.json();
+          if (Array.isArray(promoData)) setPromoCodes(promoData);
+        } catch {}
+      }
+      if (!cancelled) {
+        try {
+          const settingsRes = await fetch('/api/admin/settings');
+          const settingsData = await settingsRes.json();
+          if (settingsData) setShopSettings(settingsData);
+        } catch {}
+      }
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -212,6 +344,31 @@ export function AdminDashboard() {
     if (stock === 0) return 'text-red-600 bg-red-50';
     if (stock < 10) return 'text-amber-600 bg-amber-50';
     return 'text-green-600 bg-green-50';
+  };
+
+  const getSaleStatus = (sale: Sale) => {
+    const now = new Date();
+    const start = new Date(sale.startDate);
+    const end = new Date(sale.endDate);
+    if (!sale.isActive) return { label: 'Inactive', color: 'bg-gray-100 text-gray-600' };
+    if (now < start) return { label: 'Scheduled', color: 'bg-blue-100 text-blue-700' };
+    if (now > end) return { label: 'Expired', color: 'bg-orange-100 text-orange-700' };
+    return { label: 'Active', color: 'bg-green-100 text-green-700' };
+  };
+
+  const getPromoStatus = (promo: PromoCode) => {
+    if (!promo.isValid) return { label: 'Disabled', color: 'bg-gray-100 text-gray-600' };
+    if (promo.maxUses > 0 && promo.currentUses >= promo.maxUses) return { label: 'Exhausted', color: 'bg-orange-100 text-orange-700' };
+    if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) return { label: 'Expired', color: 'bg-red-100 text-red-700' };
+    return { label: 'Active', color: 'bg-green-100 text-green-700' };
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   // --- Order Handlers ---
@@ -321,33 +478,97 @@ export function AdminDashboard() {
         price: String(product.price),
         category: product.category,
         image: product.image,
+        imageMode: 'url',
+        images: product.images ? JSON.parse(product.images) : [],
+        imageGalleryMode: 'url',
         description: product.description,
         ingredients: product.ingredients || '',
         colors: product.colors ? JSON.parse(product.colors) : [],
         badge: product.badge || '',
         stock: String(product.stock),
+        discountPercentage: String(product.discountPercentage || 0),
       });
     } else {
       setEditingProduct(null);
-      setProductForm({ name: '', price: '', category: 'Makeup', image: '', description: '', ingredients: '', colors: [], badge: '', stock: '50' });
+      setProductForm({ name: '', price: '', category: 'Makeup', image: '', imageMode: 'url', images: [], imageGalleryMode: 'url', description: '', ingredients: '', colors: [], badge: '', stock: '50', discountPercentage: '0' });
     }
     setIsProductModalOpen(true);
   };
 
   const closeProductModal = () => setIsProductModalOpen(false);
 
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProductUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        setProductForm(prev => ({ ...prev, image: data.url }));
+        toast('Image uploaded');
+      } else {
+        toast('Failed to upload image', 'error');
+      }
+    } catch {
+      toast('Failed to upload image', 'error');
+    }
+    setProductUploading(false);
+    if (productImageInputRef.current) productImageInputRef.current.value = '';
+  };
+
+  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setProductUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const formData = new FormData();
+        formData.append('file', files[i]);
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+        if (res.ok) {
+          const data = await res.json();
+          setProductForm(prev => ({ ...prev, images: [...prev.images, data.url] }));
+        }
+      }
+      toast('Gallery images uploaded');
+    } catch {
+      toast('Failed to upload images', 'error');
+    }
+    setProductUploading(false);
+    if (galleryImageInputRef.current) galleryImageInputRef.current.value = '';
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setProductForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+  };
+
+  const addGalleryImageUrl = () => {
+    const url = prompt('Enter image URL:');
+    if (url && url.trim()) {
+      setProductForm(prev => ({ ...prev, images: [...prev.images, url.trim()] }));
+    }
+  };
+
   const handleProductSave = async () => {
+    if (!productForm.name.trim() || !productForm.price) { toast('Name and price are required', 'error'); return; }
     setProductSaving(true);
     try {
       const payload = {
         ...productForm,
+        discountPercentage: parseFloat(productForm.discountPercentage) || 0,
         colors: productForm.colors.length > 0 ? JSON.stringify(productForm.colors) : null,
+        images: productForm.images.length > 0 ? JSON.stringify(productForm.images) : null,
       };
+      // Remove non-payload fields
+      const { imageMode, imageGalleryMode, ...data } = payload;
       if (editingProduct) {
         const res = await fetch(`/api/admin/products/${editingProduct.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(data),
         });
         if (res.ok) {
           toast('Product updated');
@@ -360,7 +581,7 @@ export function AdminDashboard() {
         const res = await fetch('/api/admin/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(data),
         });
         if (res.ok) {
           toast('Product created');
@@ -416,6 +637,267 @@ export function AdminDashboard() {
     }));
   };
 
+  // --- Sale Handlers ---
+  const openSaleModal = (sale?: Sale) => {
+    if (sale) {
+      setEditingSale(sale);
+      setSaleForm({
+        name: sale.name,
+        description: sale.description || '',
+        startDate: sale.startDate ? new Date(sale.startDate).toISOString().slice(0, 16) : '',
+        endDate: sale.endDate ? new Date(sale.endDate).toISOString().slice(0, 16) : '',
+        isActive: sale.isActive,
+        categoryDiscounts: sale.categories.map(c => ({ categoryName: c.categoryName, discountPercentage: String(c.discountPercentage) })),
+      });
+    } else {
+      setEditingSale(null);
+      setSaleForm({ name: '', description: '', startDate: '', endDate: '', isActive: false, categoryDiscounts: [] });
+    }
+    setIsSaleModalOpen(true);
+  };
+
+  const addSaleCategory = () => {
+    setSaleForm(prev => ({ ...prev, categoryDiscounts: [...prev.categoryDiscounts, { categoryName: '', discountPercentage: '' }] }));
+  };
+
+  const removeSaleCategory = (index: number) => {
+    setSaleForm(prev => ({ ...prev, categoryDiscounts: prev.categoryDiscounts.filter((_, i) => i !== index) }));
+  };
+
+  const updateSaleCategory = (index: number, field: 'categoryName' | 'discountPercentage', value: string) => {
+    setSaleForm(prev => ({
+      ...prev,
+      categoryDiscounts: prev.categoryDiscounts.map((c, i) => i === index ? { ...c, [field]: value } : c),
+    }));
+  };
+
+  const handleSaleSave = async () => {
+    if (!saleForm.name.trim()) { toast('Sale name is required', 'error'); return; }
+    if (!saleForm.startDate || !saleForm.endDate) { toast('Start and end dates are required', 'error'); return; }
+    setSaleSaving(true);
+    try {
+      const payload = {
+        ...saleForm,
+        categories: saleForm.categoryDiscounts.map(c => ({
+          categoryName: c.categoryName,
+          discountPercentage: parseFloat(c.discountPercentage) || 0,
+        })),
+      };
+      if (editingSale) {
+        const res = await fetch(`/api/admin/sales/${editingSale.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          toast('Sale updated');
+          setIsSaleModalOpen(false);
+          fetchSales();
+        } else {
+          toast('Failed to update sale', 'error');
+        }
+      } else {
+        const res = await fetch('/api/admin/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          toast('Sale created');
+          setIsSaleModalOpen(false);
+          fetchSales();
+        } else {
+          toast('Failed to create sale', 'error');
+        }
+      }
+    } catch {
+      toast('Failed to save sale', 'error');
+    }
+    setSaleSaving(false);
+  };
+
+  const handleDeleteSale = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/sales/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast('Sale deleted');
+        setConfirmDelete(null);
+        fetchSales();
+      } else {
+        toast('Failed to delete sale', 'error');
+      }
+    } catch {
+      toast('Failed to delete sale', 'error');
+    }
+  };
+
+  const fetchSales = async () => {
+    try {
+      const res = await fetch('/api/admin/sales');
+      const data = await res.json();
+      if (Array.isArray(data)) setSales(data);
+    } catch {}
+  };
+
+  // --- Promo Code Handlers ---
+  const openPromoModal = (promo?: PromoCode) => {
+    if (promo) {
+      setEditingPromo(promo);
+      setPromoForm({
+        code: promo.code,
+        discountType: promo.discountType,
+        discountValue: String(promo.discountValue),
+        minOrderAmount: String(promo.minOrderAmount),
+        maxUses: String(promo.maxUses),
+        isValid: promo.isValid,
+        expiresAt: promo.expiresAt ? new Date(promo.expiresAt).toISOString().slice(0, 16) : '',
+        saleId: promo.saleId || '',
+      });
+    } else {
+      setEditingPromo(null);
+      setPromoForm({ code: '', discountType: 'percentage', discountValue: '', minOrderAmount: '0', maxUses: '0', isValid: true, expiresAt: '', saleId: '' });
+    }
+    setIsPromoModalOpen(true);
+  };
+
+  const handlePromoSave = async () => {
+    if (!promoForm.code.trim()) { toast('Promo code is required', 'error'); return; }
+    if (!promoForm.discountValue) { toast('Discount value is required', 'error'); return; }
+    setPromoSaving(true);
+    try {
+      const payload = {
+        ...promoForm,
+        discountValue: parseFloat(promoForm.discountValue),
+        minOrderAmount: parseFloat(promoForm.minOrderAmount) || 0,
+        maxUses: parseInt(promoForm.maxUses) || 0,
+        saleId: promoForm.saleId || null,
+        expiresAt: promoForm.expiresAt ? new Date(promoForm.expiresAt).toISOString() : null,
+      };
+      if (editingPromo) {
+        const res = await fetch(`/api/admin/promo-codes/${editingPromo.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          toast('Promo code updated');
+          setIsPromoModalOpen(false);
+          fetchPromoCodes();
+        } else {
+          toast('Failed to update promo code', 'error');
+        }
+      } else {
+        const res = await fetch('/api/admin/promo-codes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          toast('Promo code created');
+          setIsPromoModalOpen(false);
+          fetchPromoCodes();
+        } else {
+          toast('Failed to create promo code', 'error');
+        }
+      }
+    } catch {
+      toast('Failed to save promo code', 'error');
+    }
+    setPromoSaving(false);
+  };
+
+  const handleDeletePromo = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/promo-codes/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast('Promo code deleted');
+        setConfirmDelete(null);
+        fetchPromoCodes();
+      } else {
+        toast('Failed to delete promo code', 'error');
+      }
+    } catch {
+      toast('Failed to delete promo code', 'error');
+    }
+  };
+
+  const fetchPromoCodes = async () => {
+    try {
+      const res = await fetch('/api/admin/promo-codes');
+      const data = await res.json();
+      if (Array.isArray(data)) setPromoCodes(data);
+    } catch {}
+  };
+
+  // --- Settings Handlers ---
+  const handleSettingsSave = async () => {
+    if (!shopSettings) return;
+    setSettingsSaving(true);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopName: shopSettings.shopName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setShopSettings(data);
+        toast('Settings saved');
+      } else {
+        toast('Failed to save settings', 'error');
+      }
+    } catch {
+      toast('Failed to save settings', 'error');
+    }
+    setSettingsSaving(false);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'logo');
+      const res = await fetch('/api/admin/settings', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings) setShopSettings(data.settings);
+        toast('Logo uploaded');
+      } else {
+        toast('Failed to upload logo', 'error');
+      }
+    } catch {
+      toast('Failed to upload logo', 'error');
+    }
+    setLogoUploading(false);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFaviconUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'favicon');
+      const res = await fetch('/api/admin/settings', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings) setShopSettings(data.settings);
+        toast('Favicon uploaded');
+      } else {
+        toast('Failed to upload favicon', 'error');
+      }
+    } catch {
+      toast('Failed to upload favicon', 'error');
+    }
+    setFaviconUploading(false);
+    if (faviconInputRef.current) faviconInputRef.current.value = '';
+  };
+
   // All unique categories from products + custom categories
   const allCategories = [...new Set([
     ...categories.map(c => c.name),
@@ -464,11 +946,16 @@ export function AdminDashboard() {
     { key: 'orders' as const, label: 'Orders', icon: ShoppingBag },
     { key: 'products' as const, label: 'Products', icon: Package },
     { key: 'customers' as const, label: 'Customers', icon: Users },
+    { key: 'sales' as const, label: 'Sales', icon: Percent },
+    { key: 'promo-codes' as const, label: 'Promo Codes', icon: Ticket },
+    { key: 'settings' as const, label: 'Settings', icon: Settings },
   ];
 
   const inputClass = "w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]";
+  const inputClassSm = "w-full px-3 py-2 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] text-sm";
   const btnPrimary = "px-4 py-2.5 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors text-sm flex items-center justify-center gap-1.5 disabled:opacity-60";
   const btnOutline = "px-4 py-2.5 border border-[#f5e6e0] text-[#8b6f63] rounded-full hover:bg-[#fef5f1] transition-colors text-sm";
+  const sectionClass = "bg-white rounded-lg shadow-sm p-6";
 
   return (
     <div className="min-h-screen bg-[#fef5f1]">
@@ -500,7 +987,7 @@ export function AdminDashboard() {
         <div className="bg-white rounded-lg shadow-sm p-2 mb-8 flex gap-2 overflow-x-auto">
           {tabs.map((tab) => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm whitespace-nowrap transition-colors ${
                 activeTab === tab.key ? 'bg-[#d4a5a5] text-white' : 'text-[#8b6f63] hover:bg-[#fef5f1]'
               }`}>
               <tab.icon size={16} />
@@ -616,7 +1103,7 @@ export function AdminDashboard() {
 
         {/* ===== ORDERS TAB ===== */}
         {activeTab === 'orders' && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className={sectionClass}>
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
               <h2 className="text-xl font-serif text-[#8b6f63]">All Orders</h2>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -671,7 +1158,7 @@ export function AdminDashboard() {
         {activeTab === 'products' && (
           <div className="space-y-6">
             {/* Categories Management */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className={sectionClass}>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-xl font-serif text-[#8b6f63]">Categories</h2>
@@ -698,7 +1185,7 @@ export function AdminDashboard() {
             </div>
 
             {/* Products List */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className={sectionClass}>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-serif text-[#8b6f63]">Products</h2>
                 <button onClick={() => openProductModal()} className={btnPrimary}>
@@ -743,6 +1230,9 @@ export function AdminDashboard() {
                         <h3 className="text-[#8b6f63] font-medium truncate">{product.name}</h3>
                         {product.badge && <span className="px-2 py-0.5 bg-[#d4a5a5] text-white text-xs rounded-full">{product.badge}</span>}
                         <span className="px-2 py-0.5 bg-[#fef5f1] text-[#8b6f63]/70 text-xs rounded-full">{product.category}</span>
+                        {product.discountPercentage > 0 && (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">-{product.discountPercentage}%</span>
+                        )}
                       </div>
                       <p className="text-sm text-[#8b6f63]/70 mt-1">
                         ${product.price.toFixed(2)} · <span className={product.stock < 10 ? 'text-red-500 font-medium' : ''}>Stock: {product.stock}</span> · Sales: {product.sales}
@@ -772,7 +1262,7 @@ export function AdminDashboard() {
 
         {/* ===== CUSTOMERS TAB ===== */}
         {activeTab === 'customers' && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className={sectionClass}>
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
               <h2 className="text-xl font-serif text-[#8b6f63]">Customers</h2>
               <div className="relative w-full md:w-64">
@@ -815,6 +1305,221 @@ export function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* ===== SALES TAB ===== */}
+        {activeTab === 'sales' && (
+          <div className="space-y-6">
+            <div className={sectionClass}>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-serif text-[#8b6f63]">Sales & Discounts</h2>
+                  <p className="text-sm text-[#8b6f63]/70 mt-1">{sales.length} sale{sales.length !== 1 ? 's' : ''} configured</p>
+                </div>
+                <button onClick={() => openSaleModal()} className={btnPrimary}>
+                  <Plus size={16} /> Create Sale
+                </button>
+              </div>
+              {sales.length === 0 ? (
+                <div className="text-center py-12">
+                  <Percent size={48} className="text-[#d4a5a5]/30 mx-auto mb-4" />
+                  <p className="text-[#8b6f63]/60">No sales created yet</p>
+                  <p className="text-sm text-[#8b6f63]/40 mt-1">Create your first sale to manage category discounts</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sales.map((sale) => {
+                    const status = getSaleStatus(sale);
+                    return (
+                      <motion.div key={sale.id} className="p-4 border border-[#8b6f63]/20 rounded-lg hover:bg-[#fef5f1] transition-colors"
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <h3 className="text-[#8b6f63] font-semibold">{sale.name}</h3>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>{status.label}</span>
+                              {sale.isActive && <span className="flex items-center gap-1 text-xs text-green-600"><ToggleRight size={16} /> Active</span>}
+                              {!sale.isActive && <span className="flex items-center gap-1 text-xs text-gray-400"><ToggleLeft size={16} /> Inactive</span>}
+                            </div>
+                            {sale.description && <p className="text-sm text-[#8b6f63]/70 mt-1">{sale.description}</p>}
+                            <div className="flex items-center gap-4 mt-2 text-xs text-[#8b6f63]/50">
+                              <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(sale.startDate)} — {formatDate(sale.endDate)}</span>
+                              <span>{sale.categories.length} categor{sale.categories.length !== 1 ? 'ies' : 'y'}</span>
+                              <span>{sale.promoCodes.length} promo code{sale.promoCodes.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            {sale.categories.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                {sale.categories.map((cat) => (
+                                  <span key={cat.id} className="px-3 py-1 bg-[#fef5f1] rounded-full text-xs text-[#8b6f63] border border-[#f5e6e0]/80">
+                                    <Tag size={10} className="inline mr-1 text-[#d4a5a5]" />
+                                    {cat.categoryName}: <span className="font-semibold text-[#d4a5a5]">{cat.discountPercentage}%</span> off
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button onClick={() => openSaleModal(sale)} className="p-2 text-[#8b6f63] hover:text-[#d4a5a5] hover:bg-[#fef5f1] rounded-lg transition-colors" title="Edit"><Edit3 size={18} /></button>
+                            <button onClick={() => setConfirmDelete({ type: 'sale', id: sale.id, name: sale.name })} className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 size={18} /></button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===== PROMO CODES TAB ===== */}
+        {activeTab === 'promo-codes' && (
+          <div className={sectionClass}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-serif text-[#8b6f63]">Promo Codes</h2>
+                <p className="text-sm text-[#8b6f63]/70 mt-1">{promoCodes.length} promo code{promoCodes.length !== 1 ? 's' : ''} configured</p>
+              </div>
+              <button onClick={() => openPromoModal()} className={btnPrimary}>
+                <Plus size={16} /> Create Promo Code
+              </button>
+            </div>
+            {promoCodes.length === 0 ? (
+              <div className="text-center py-12">
+                <Ticket size={48} className="text-[#d4a5a5]/30 mx-auto mb-4" />
+                <p className="text-[#8b6f63]/60">No promo codes created yet</p>
+                <p className="text-sm text-[#8b6f63]/40 mt-1">Create promo codes to offer discounts at checkout</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr className="border-b border-[#8b6f63]/20">
+                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Code</th>
+                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Discount</th>
+                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Min Order</th>
+                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Usage</th>
+                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Expires</th>
+                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Linked Sale</th>
+                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Status</th>
+                    <th className="text-left py-3 px-4 text-sm text-[#8b6f63]">Actions</th>
+                  </tr></thead>
+                  <tbody>
+                    {promoCodes.map((promo) => {
+                      const status = getPromoStatus(promo);
+                      return (
+                        <tr key={promo.id} className="border-b border-[#8b6f63]/10 hover:bg-[#fef5f1] transition-colors">
+                          <td className="py-3 px-4 text-sm text-[#8b6f63] font-mono font-semibold tracking-wide">{promo.code}</td>
+                          <td className="py-3 px-4 text-sm text-[#8b6f63]">
+                            {promo.discountType === 'percentage'
+                              ? <span className="text-green-600 font-semibold">{promo.discountValue}%</span>
+                              : <span className="text-green-600 font-semibold">${promo.discountValue}</span>}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-[#8b6f63]/70">{promo.minOrderAmount > 0 ? `$${promo.minOrderAmount}` : '—'}</td>
+                          <td className="py-3 px-4 text-sm text-[#8b6f63]">
+                            {promo.maxUses > 0 ? `${promo.currentUses}/${promo.maxUses}` : `${promo.currentUses} (unlimited)`}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-[#8b6f63]/70">{promo.expiresAt ? formatDate(promo.expiresAt) : 'Never'}</td>
+                          <td className="py-3 px-4 text-sm text-[#8b6f63]/70">{promo.sale ? promo.sale.name : '—'}</td>
+                          <td className="py-3 px-4"><span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color}`}>{status.label}</span></td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => openPromoModal(promo)} className="p-1.5 text-[#8b6f63] hover:text-[#d4a5a5] hover:bg-[#fef5f1] rounded-lg transition-colors" title="Edit"><Edit3 size={16} /></button>
+                              <button onClick={() => setConfirmDelete({ type: 'promo-code', id: promo.id, name: promo.code })} className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 size={16} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== SETTINGS TAB ===== */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6">
+            {/* Shop Info */}
+            <div className={sectionClass}>
+              <div className="flex items-center gap-3 mb-6">
+                <Store size={20} className="text-[#d4a5a5]" />
+                <h2 className="text-xl font-serif text-[#8b6f63]">Shop Information</h2>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Shop Name</label>
+                  <input type="text" value={shopSettings?.shopName || ''} onChange={(e) => setShopSettings(prev => prev ? { ...prev, shopName: e.target.value } : prev)}
+                    placeholder="Rare Beauty" className={inputClass} />
+                </div>
+                <button onClick={handleSettingsSave} disabled={settingsSaving} className={btnPrimary}>
+                  {settingsSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  Save Shop Name
+                </button>
+              </div>
+            </div>
+
+            {/* Logo Upload */}
+            <div className={sectionClass}>
+              <div className="flex items-center gap-3 mb-6">
+                <ImageIcon size={20} className="text-[#d4a5a5]" />
+                <h2 className="text-xl font-serif text-[#8b6f63]">Shop Logo</h2>
+              </div>
+              <div className="flex items-start gap-6">
+                <div className="w-32 h-32 bg-[#fef5f1] rounded-xl border-2 border-dashed border-[#f5e6e0] flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {shopSettings?.logoUrl ? (
+                    <img src={shopSettings.logoUrl} alt="Shop Logo" className="w-full h-full object-contain p-2" />
+                  ) : (
+                    <div className="text-center">
+                      <Image size={24} className="text-[#d4a5a5]/40 mx-auto mb-1" />
+                      <span className="text-xs text-[#8b6f63]/40">No logo</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <p className="text-sm text-[#8b6f63]/70">Upload a logo for your store. Recommended size: 200x60px. Supports PNG, JPG, SVG.</p>
+                  <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                  <button onClick={() => logoInputRef.current?.click()} disabled={logoUploading} className={btnOutline}>
+                    {logoUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                    {logoUploading ? 'Uploading...' : 'Upload Logo'}
+                  </button>
+                  {shopSettings?.logoUrl && (
+                    <p className="text-xs text-[#8b6f63]/50 break-all">Current: {shopSettings.logoUrl}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Favicon Upload */}
+            <div className={sectionClass}>
+              <div className="flex items-center gap-3 mb-6">
+                <Globe size={20} className="text-[#d4a5a5]" />
+                <h2 className="text-xl font-serif text-[#8b6f63]">Favicon</h2>
+              </div>
+              <div className="flex items-start gap-6">
+                <div className="w-16 h-16 bg-[#fef5f1] rounded-xl border-2 border-dashed border-[#f5e6e0] flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {shopSettings?.faviconUrl ? (
+                    <img src={shopSettings.faviconUrl} alt="Favicon" className="w-full h-full object-contain p-1" />
+                  ) : (
+                    <div className="text-center">
+                      <Globe size={16} className="text-[#d4a5a5]/40" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <p className="text-sm text-[#8b6f63]/70">Upload a favicon for browser tabs. Recommended size: 32x32px or 64x64px. Supports PNG, ICO.</p>
+                  <input ref={faviconInputRef} type="file" accept="image/*" onChange={handleFaviconUpload} className="hidden" />
+                  <button onClick={() => faviconInputRef.current?.click()} disabled={faviconUploading} className={btnOutline}>
+                    {faviconUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                    {faviconUploading ? 'Uploading...' : 'Upload Favicon'}
+                  </button>
+                  {shopSettings?.faviconUrl && (
+                    <p className="text-xs text-[#8b6f63]/50 break-all">Current: {shopSettings.faviconUrl}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===== ORDER DETAIL MODAL ===== */}
@@ -830,11 +1535,12 @@ export function AdminDashboard() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div><p className="text-xs text-[#8b6f63]/50 uppercase">Status</p><span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(showOrderDetail.status)}`}>{showOrderDetail.status}</span></div>
-                  <div><p className="text-xs text-[#8b6f63]/50 uppercase">Date</p><p className="text-sm text-[#8b6f63]">{new Date(showOrderDetail.createdAt).toLocaleString()}</p></div>
+                  <div><p className="text-xs text-[#8b6f63]/50 uppercase">Date</p><p className="text-sm text-[#8b6f63]">{formatDateTime(showOrderDetail.createdAt)}</p></div>
                   <div><p className="text-xs text-[#8b6f63]/50 uppercase">Customer</p><p className="text-sm text-[#8b6f63]">{showOrderDetail.firstName} {showOrderDetail.lastName}</p></div>
                   <div><p className="text-xs text-[#8b6f63]/50 uppercase">Email</p><p className="text-sm text-[#8b6f63]">{showOrderDetail.email}</p></div>
                   <div><p className="text-xs text-[#8b6f63]/50 uppercase">Phone</p><p className="text-sm text-[#8b6f63]">{showOrderDetail.phone}</p></div>
                   {showOrderDetail.trackingNumber && <div><p className="text-xs text-[#8b6f63]/50 uppercase">Tracking</p><p className="text-sm text-[#d4a5a5] font-mono">{showOrderDetail.trackingNumber}</p></div>}
+                  {showOrderDetail.promoCode && <div><p className="text-xs text-[#8b6f63]/50 uppercase">Promo Code</p><p className="text-sm text-green-600 font-mono">{showOrderDetail.promoCode}</p></div>}
                 </div>
                 <div className="bg-[#fef5f1] rounded-lg p-4">
                   <p className="text-xs text-[#8b6f63]/50 uppercase mb-1">Shipping Address</p>
@@ -857,7 +1563,7 @@ export function AdminDashboard() {
                               <span className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: item.color }} title={item.color} />
                             )}
                           </div>
-                          <p className="text-xs text-[#8b6f63]/50">Qty: {item.quantity}{item.color && item.color !== 'default' ? <span className="ml-1.5">· <span className="font-mono text-[#d4a5a5]">{item.color}</span></span> : ''}</p>
+                          <p className="text-xs text-[#8b6f63]/50">Qty: {item.quantity}{item.originalPrice && item.originalPrice > item.price ? <span className="ml-2 line-through text-[#8b6f63]/30">${item.originalPrice.toFixed(2)}</span> : ''}</p>
                         </div>
                         <p className="text-sm text-[#8b6f63] font-medium">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
@@ -866,6 +1572,9 @@ export function AdminDashboard() {
                 </div>
                 <div className="border-t border-[#8b6f63]/20 pt-4 space-y-1">
                   <div className="flex justify-between text-sm text-[#8b6f63]/70"><span>Subtotal</span><span>${showOrderDetail.subtotal.toFixed(2)}</span></div>
+                  {(showOrderDetail as Order).discountTotal > 0 && (
+                    <div className="flex justify-between text-sm text-green-600"><span>Discount</span><span>-${(showOrderDetail as Order).discountTotal.toFixed(2)}</span></div>
+                  )}
                   <div className="flex justify-between text-sm text-[#8b6f63]/70"><span>Shipping</span><span>{showOrderDetail.shipping === 0 ? 'Free' : `$${showOrderDetail.shipping.toFixed(2)}`}</span></div>
                   <div className="flex justify-between text-sm text-[#8b6f63]/70"><span>Tax</span><span>${showOrderDetail.tax.toFixed(2)}</span></div>
                   <div className="flex justify-between text-lg text-[#8b6f63] font-semibold pt-2 border-t border-[#8b6f63]/10"><span>Total</span><span>${showOrderDetail.total.toFixed(2)}</span></div>
@@ -951,7 +1660,7 @@ export function AdminDashboard() {
                     <label className="block text-sm font-medium text-[#8b6f63] mb-1">Product Name *</label>
                     <input type="text" value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} required className={inputClass} />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-[#8b6f63] mb-1">Price ($) *</label>
                       <input type="number" step="0.01" value={productForm.price} onChange={(e) => setProductForm({ ...productForm, price: e.target.value })} required className={inputClass} />
@@ -959,6 +1668,10 @@ export function AdminDashboard() {
                     <div>
                       <label className="block text-sm font-medium text-[#8b6f63] mb-1">Stock *</label>
                       <input type="number" value={productForm.stock} onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-1">Discount %</label>
+                      <input type="number" min="0" max="100" value={productForm.discountPercentage} onChange={(e) => setProductForm({ ...productForm, discountPercentage: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)).toString() })} className={inputClass} />
                     </div>
                   </div>
                   <div>
@@ -968,15 +1681,82 @@ export function AdminDashboard() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Image URL</label>
-                    <input type="text" value={productForm.image} onChange={(e) => setProductForm({ ...productForm, image: e.target.value })} placeholder="/products/product-name.png" className={inputClass} />
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-[#8b6f63] mb-1">Badge (optional)</label>
                     <select value={productForm.badge} onChange={(e) => setProductForm({ ...productForm, badge: e.target.value })} className={inputClass}>
                       <option value="">None</option><option>New</option><option>Sale</option><option>Best Seller</option><option>Limited Edition</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Product Image */}
+                <div className="bg-[#fef5f1] rounded-lg p-4 space-y-3">
+                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Image size={16} /> Product Image</h4>
+                  <div className="flex gap-2 mb-2">
+                    <button onClick={() => setProductForm(prev => ({ ...prev, imageMode: 'url' }))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors ${productForm.imageMode === 'url' ? 'bg-[#d4a5a5] text-white' : 'bg-white border border-[#f5e6e0] text-[#8b6f63]'}`}>
+                      <Link size={12} /> Use URL
+                    </button>
+                    <button onClick={() => setProductForm(prev => ({ ...prev, imageMode: 'upload' }))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors ${productForm.imageMode === 'upload' ? 'bg-[#d4a5a5] text-white' : 'bg-white border border-[#f5e6e0] text-[#8b6f63]'}`}>
+                      <Upload size={12} /> Upload File
+                    </button>
+                  </div>
+                  {productForm.imageMode === 'url' ? (
+                    <input type="text" value={productForm.image} onChange={(e) => setProductForm({ ...productForm, image: e.target.value })} placeholder="/products/product-name.png" className={inputClassSm} />
+                  ) : (
+                    <div>
+                      <input ref={productImageInputRef} type="file" accept="image/*" onChange={handleProductImageUpload} className="hidden" />
+                      <button onClick={() => productImageInputRef.current?.click()} disabled={productUploading} className="flex items-center gap-2 px-4 py-2 bg-white border border-[#f5e6e0] text-[#8b6f63] rounded-lg hover:bg-[#fef5f1] transition-colors text-sm disabled:opacity-60">
+                        {productUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                        {productUploading ? 'Uploading...' : 'Choose File'}
+                      </button>
+                    </div>
+                  )}
+                  {productForm.image && (
+                    <div className="w-24 h-24 rounded-lg overflow-hidden border border-[#f5e6e0]">
+                      <img src={productForm.image} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Image Gallery */}
+                <div className="bg-[#fef5f1] rounded-lg p-4 space-y-3">
+                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><ImageIcon size={16} /> Image Gallery</h4>
+                  <div className="flex gap-2 mb-2">
+                    <button onClick={() => setProductForm(prev => ({ ...prev, imageGalleryMode: 'url' }))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors ${productForm.imageGalleryMode === 'url' ? 'bg-[#d4a5a5] text-white' : 'bg-white border border-[#f5e6e0] text-[#8b6f63]'}`}>
+                      <Link size={12} /> Use URL
+                    </button>
+                    <button onClick={() => setProductForm(prev => ({ ...prev, imageGalleryMode: 'upload' }))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors ${productForm.imageGalleryMode === 'upload' ? 'bg-[#d4a5a5] text-white' : 'bg-white border border-[#f5e6e0] text-[#8b6f63]'}`}>
+                      <Upload size={12} /> Upload File
+                    </button>
+                  </div>
+                  {productForm.imageGalleryMode === 'url' ? (
+                    <button onClick={addGalleryImageUrl} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#f5e6e0] text-[#8b6f63] rounded-lg hover:bg-[#fef5f1] transition-colors text-sm">
+                      <Plus size={14} /> Add Image URL
+                    </button>
+                  ) : (
+                    <div>
+                      <input ref={galleryImageInputRef} type="file" accept="image/*" multiple onChange={handleGalleryImageUpload} className="hidden" />
+                      <button onClick={() => galleryImageInputRef.current?.click()} disabled={productUploading} className="flex items-center gap-2 px-4 py-2 bg-white border border-[#f5e6e0] text-[#8b6f63] rounded-lg hover:bg-[#fef5f1] transition-colors text-sm disabled:opacity-60">
+                        {productUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                        {productUploading ? 'Uploading...' : 'Choose Files'}
+                      </button>
+                    </div>
+                  )}
+                  {productForm.images.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {productForm.images.map((img, idx) => (
+                        <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-[#f5e6e0] group">
+                          <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                          <button onClick={() => removeGalleryImage(idx)} className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -1058,6 +1838,158 @@ export function AdminDashboard() {
         )}
       </AnimatePresence>
 
+      {/* ===== SALE MODAL ===== */}
+      <AnimatePresence>
+        {isSaleModalOpen && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsSaleModalOpen(false)} />
+            <motion.div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-serif text-[#8b6f63]">{editingSale ? 'Edit Sale' : 'Create New Sale'}</h3>
+                <button onClick={() => setIsSaleModalOpen(false)} className="text-[#8b6f63]/40 hover:text-[#8b6f63]"><X size={20} /></button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Sale Name *</label>
+                  <input type="text" value={saleForm.name} onChange={(e) => setSaleForm({ ...saleForm, name: e.target.value })} placeholder="e.g. Summer Glow Sale" className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Description</label>
+                  <textarea value={saleForm.description} onChange={(e) => setSaleForm({ ...saleForm, description: e.target.value })} placeholder="Describe this sale..." rows={2} className={inputClass + ' resize-none'} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Start Date *</label>
+                    <input type="datetime-local" value={saleForm.startDate} onChange={(e) => setSaleForm({ ...saleForm, startDate: e.target.value })} className={inputClassSm} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">End Date *</label>
+                    <input type="datetime-local" value={saleForm.endDate} onChange={(e) => setSaleForm({ ...saleForm, endDate: e.target.value })} className={inputClassSm} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setSaleForm(prev => ({ ...prev, isActive: !prev.isActive }))}
+                    className="flex items-center gap-2">
+                    {saleForm.isActive ? (
+                      <ToggleRight size={28} className="text-[#d4a5a5]" />
+                    ) : (
+                      <ToggleLeft size={28} className="text-gray-300" />
+                    )}
+                  </button>
+                  <span className="text-sm text-[#8b6f63]">{saleForm.isActive ? 'Active' : 'Inactive'}</span>
+                </div>
+
+                {/* Category Discounts */}
+                <div className="border-t border-[#f5e6e0] pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Tag size={14} /> Category Discounts</label>
+                    <button onClick={addSaleCategory} className="text-xs text-[#d4a5a5] hover:underline flex items-center gap-1"><Plus size={12} /> Add</button>
+                  </div>
+                  {saleForm.categoryDiscounts.length === 0 && (
+                    <p className="text-xs text-[#8b6f63]/50 mb-2">No category discounts added yet</p>
+                  )}
+                  <div className="space-y-2">
+                    {saleForm.categoryDiscounts.map((cat, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <select value={cat.categoryName} onChange={(e) => updateSaleCategory(idx, 'categoryName', e.target.value)} className="flex-1 px-3 py-2 bg-[#fef5f1] border border-[#f5e6e0]/80 rounded-lg text-sm text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]">
+                          <option value="">Select category</option>
+                          {allCategories.map(c => <option key={c}>{c}</option>)}
+                        </select>
+                        <div className="flex items-center gap-1">
+                          <input type="number" min="0" max="100" value={cat.discountPercentage} onChange={(e) => updateSaleCategory(idx, 'discountPercentage', e.target.value)} placeholder="%" className="w-20 px-2 py-2 bg-[#fef5f1] border border-[#f5e6e0]/80 rounded-lg text-sm text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]" />
+                          <span className="text-xs text-[#8b6f63]/50">%</span>
+                        </div>
+                        <button onClick={() => removeSaleCategory(idx)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><X size={14} /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setIsSaleModalOpen(false)} className={btnOutline}>Cancel</button>
+                  <button onClick={handleSaleSave} disabled={saleSaving} className={btnPrimary}>
+                    {saleSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {editingSale ? 'Update Sale' : 'Create Sale'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== PROMO CODE MODAL ===== */}
+      <AnimatePresence>
+        {isPromoModalOpen && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsPromoModalOpen(false)} />
+            <motion.div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-serif text-[#8b6f63]">{editingPromo ? 'Edit Promo Code' : 'Create Promo Code'}</h3>
+                <button onClick={() => setIsPromoModalOpen(false)} className="text-[#8b6f63]/40 hover:text-[#8b6f63]"><X size={20} /></button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Promo Code *</label>
+                  <input type="text" value={promoForm.code} onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })} placeholder="e.g. SUMMER20" className={inputClass + ' font-mono uppercase tracking-wider'} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Discount Type</label>
+                    <select value={promoForm.discountType} onChange={(e) => setPromoForm({ ...promoForm, discountType: e.target.value })} className={inputClass}>
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount ($)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Discount Value *</label>
+                    <input type="number" step="0.01" min="0" value={promoForm.discountValue} onChange={(e) => setPromoForm({ ...promoForm, discountValue: e.target.value })} placeholder={promoForm.discountType === 'percentage' ? '20' : '10.00'} className={inputClass} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Min Order ($)</label>
+                    <input type="number" step="0.01" min="0" value={promoForm.minOrderAmount} onChange={(e) => setPromoForm({ ...promoForm, minOrderAmount: e.target.value })} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Max Uses (0=unlimited)</label>
+                    <input type="number" min="0" value={promoForm.maxUses} onChange={(e) => setPromoForm({ ...promoForm, maxUses: e.target.value })} className={inputClass} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Expiry Date (optional)</label>
+                  <input type="datetime-local" value={promoForm.expiresAt} onChange={(e) => setPromoForm({ ...promoForm, expiresAt: e.target.value })} className={inputClassSm} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Link to Sale (optional)</label>
+                  <select value={promoForm.saleId} onChange={(e) => setPromoForm({ ...promoForm, saleId: e.target.value })} className={inputClass}>
+                    <option value="">No linked sale</option>
+                    {sales.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setPromoForm(prev => ({ ...prev, isValid: !prev.isValid }))} className="flex items-center gap-2">
+                    {promoForm.isValid ? (
+                      <ToggleRight size={28} className="text-[#d4a5a5]" />
+                    ) : (
+                      <ToggleLeft size={28} className="text-gray-300" />
+                    )}
+                  </button>
+                  <span className="text-sm text-[#8b6f63]">{promoForm.isValid ? 'Active' : 'Disabled'}</span>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setIsPromoModalOpen(false)} className={btnOutline}>Cancel</button>
+                  <button onClick={handlePromoSave} disabled={promoSaving} className={btnPrimary}>
+                    {promoSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {editingPromo ? 'Update' : 'Create'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ===== CONFIRM DELETE MODAL ===== */}
       <AnimatePresence>
         {confirmDelete && (
@@ -1079,6 +2011,8 @@ export function AdminDashboard() {
                     if (confirmDelete.type === 'product') handleDeleteProduct(confirmDelete.id);
                     else if (confirmDelete.type === 'customer') handleDeleteCustomer(confirmDelete.id);
                     else if (confirmDelete.type === 'category') handleDeleteCategory(confirmDelete.id);
+                    else if (confirmDelete.type === 'sale') handleDeleteSale(confirmDelete.id);
+                    else if (confirmDelete.type === 'promo-code') handleDeletePromo(confirmDelete.id);
                   }}
                   className="px-4 py-2.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors text-sm"
                 >
