@@ -7,8 +7,12 @@ import {
   Star, ShoppingBag, Heart, Share2, ArrowLeft, Send,
   ChevronLeft, ChevronRight, ChevronDown, Minus, Plus, Check,
   Facebook, Twitter, Truck, RotateCcw, Shield, Clock,
-  Package, Droplets, Leaf, ThumbsUp, X, ZoomIn,
+  Package, Droplets, Leaf, ThumbsUp, X, ZoomIn, Sparkles,
+  Copy, Ruler, Rabbit, Info,
 } from 'lucide-react';
+import {
+  Popover, PopoverTrigger, PopoverContent,
+} from '@/components/ui/popover';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductDetailSkeleton } from '@/components/Skeletons';
@@ -59,6 +63,28 @@ const INGREDIENTS = [
   { name: 'Mica', purpose: 'Mineral Pigment' },
 ];
 
+const KEY_INGREDIENTS = [
+  { name: 'Hyaluronic Acid', benefit: 'Deeply hydrates and plumps skin, holding up to 1,000x its weight in water', goodFor: 'All skin types, especially dry & mature skin', popularity: 5, color: '#e8b4d8' },
+  { name: 'Niacinamide (Vitamin B3)', benefit: 'Brightens skin, minimizes pores, and evens out skin tone', goodFor: 'Combination, oily, and acne-prone skin', popularity: 5, color: '#f5c5a3' },
+  { name: 'Vitamin E (Tocopherol)', benefit: 'Powerful antioxidant that protects skin from free radical damage', goodFor: 'All skin types, especially dry & sensitive', popularity: 4, color: '#d4a5a5' },
+  { name: 'Squalane', benefit: 'Lightweight moisturizer that mimics skin\'s natural oils', goodFor: 'All skin types, non-comedogenic', popularity: 4, color: '#a8d8b9' },
+  { name: 'Ceramide NP', benefit: 'Strengthens the skin barrier and locks in moisture', goodFor: 'Dry, sensitive, and damaged skin', popularity: 4, color: '#c9b1ff' },
+  { name: 'Centella Asiatica Extract', benefit: 'Soothes inflammation and promotes skin healing', goodFor: 'Sensitive, acne-prone, and irritated skin', popularity: 5, color: '#b8d4e3' },
+];
+
+const SIZE_GUIDE = [
+  { size: 'Sample', dimensions: '2g / 0.07 oz', recommended: 'Try before you buy', diameter: 32 },
+  { size: 'Regular', dimensions: '6g / 0.21 oz', recommended: 'Everyday use', diameter: 52 },
+  { size: 'Full Size', dimensions: '12g / 0.42 oz', recommended: 'Frequent use, best value', diameter: 80 },
+];
+
+const SHADE_TIPS = [
+  { tip: 'Start with a shade lighter than your natural lip color for a natural look.', icon: '💡' },
+  { tip: 'Apply with a lip brush for precise, even coverage.', icon: '🖌️' },
+  { tip: 'Layer over lip balm for a subtle, tinted finish.', icon: '✨' },
+  { tip: 'Swatch on your wrist to compare shades in natural light.', icon: '☀️' },
+];
+
 const TABS = ['Description', 'Ingredients', 'Reviews', 'Shipping'] as const;
 type TabKey = (typeof TABS)[number];
 
@@ -100,6 +126,15 @@ export function ProductDetailPage() {
 
   // Lightbox state
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  // Size guide modal state
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+  // Ingredient accordion state
+  const [ingredientAccordion, setIngredientAccordion] = useState<'key' | 'full' | null>('key');
+
+  // Active ingredient tooltip state
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   // Parse gallery images from product images JSON field
   const galleryImages = useMemo(() => {
@@ -155,7 +190,7 @@ export function ProductDetailPage() {
       .then((r) => r?.json())
       .then((allProducts) => {
         if (cancelled || !allProducts) return;
-        setRelatedProducts(allProducts.filter((p: Product) => p.id !== productId).slice(0, 4));
+        setRelatedProducts(allProducts.filter((p: Product) => p.id !== productId).slice(0, 8));
         setLoading(false);
       })
       .catch(() => { if (!cancelled) setLoading(false); });
@@ -301,11 +336,12 @@ export function ProductDetailPage() {
     setZoomPos({ x, y });
   }, []);
 
-  // ESC key to close lightbox
+  // ESC key to close lightbox / size guide
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isLightboxOpen) {
-        setIsLightboxOpen(false);
+      if (e.key === 'Escape') {
+        if (isSizeGuideOpen) setIsSizeGuideOpen(false);
+        else if (isLightboxOpen) setIsLightboxOpen(false);
       }
       if (isLightboxOpen) {
         if (e.key === 'ArrowLeft') handleImageNav('left');
@@ -314,7 +350,7 @@ export function ProductDetailPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLightboxOpen, handleImageNav]);
+  }, [isLightboxOpen, isSizeGuideOpen, handleImageNav]);
 
   const getStockStatus = () => {
     if (!product || product.stock === undefined) return { text: 'In Stock', color: 'text-green-600', dotColor: 'bg-green-500' };
@@ -355,6 +391,9 @@ export function ProductDetailPage() {
     else sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return sorted.slice(0, 8);
   }, [reviews, reviewSortOrder]);
+
+  const completeLookProducts = useMemo(() => relatedProducts.slice(0, 4), [relatedProducts]);
+  const mayAlsoLikeProducts = useMemo(() => relatedProducts.slice(4, 8), [relatedProducts]);
 
   if (loading) {
     return <ProductDetailSkeleton />;
@@ -604,7 +643,36 @@ export function ProductDetailPage() {
           )}
 
           {/* Description Preview */}
-          <p className="text-[#8b6f63]/70 mb-8 leading-relaxed">{product.description}</p>
+          <p className="text-[#8b6f63]/70 mb-6 leading-relaxed">{product.description}</p>
+
+          {/* Product Info Badges */}
+          <motion.div
+            className="flex flex-wrap gap-2.5 mb-6"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+              <Rabbit size={14} className="text-[#d4a5a5]" />
+              Cruelty-Free
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+              <Leaf size={14} className="text-green-500" />
+              Vegan
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+              <Sparkles size={14} className="text-amber-500" />
+              Clean Beauty
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+              <Clock size={14} className="text-[#8b6f63]/60" />
+              12M After Opening
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+              <Package size={14} className="text-[#8b6f63]/60" />
+              12g / 0.42 oz
+            </span>
+          </motion.div>
 
           {/* Quantity Selector */}
           <div className="flex items-center gap-5 mb-6">
@@ -729,40 +797,63 @@ export function ProductDetailPage() {
             </button>
           </div>
 
-          {/* Social Sharing Buttons */}
-          <div className="flex items-center gap-3 mb-8">
+          {/* Share & Size Guide Row */}
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
             <span className="text-sm text-[#8b6f63]/50">Share:</span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                  toast('Link copied to clipboard!');
+                }).catch(() => {
+                  toast('Failed to copy link', 'error');
+                });
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fef5f1] dark:bg-[#2d1f24] border border-[#f5e6e0]/50 dark:border-[#3d2f34] text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#f5e6e0] hover:text-[#8b6f63] transition-all"
+              aria-label="Copy product link"
+            >
+              <Copy size={13} />
+              Copy Link
+            </button>
             <button
               onClick={() => {
                 window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
                 toast('Opening Facebook share', 'info');
               }}
-              className="w-9 h-9 rounded-full bg-[#fef5f1] flex items-center justify-center text-[#8b6f63]/60 hover:bg-[#1877f2] hover:text-white transition-all"
+              className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#2d1f24] flex items-center justify-center text-[#8b6f63]/60 dark:text-[#e8ddd5] hover:bg-[#1877f2] hover:text-white transition-all border border-[#f5e6e0]/30 dark:border-[#3d2f34]"
               aria-label="Share on Facebook"
             >
-              <Facebook size={16} />
+              <Facebook size={14} />
             </button>
             <button
               onClick={() => {
                 window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${product.name} on Rare Beauty!`)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
                 toast('Opening Twitter share', 'info');
               }}
-              className="w-9 h-9 rounded-full bg-[#fef5f1] flex items-center justify-center text-[#8b6f63]/60 hover:bg-[#1da1f2] hover:text-white transition-all"
+              className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#2d1f24] flex items-center justify-center text-[#8b6f63]/60 dark:text-[#e8ddd5] hover:bg-[#1da1f2] hover:text-white transition-all border border-[#f5e6e0]/30 dark:border-[#3d2f34]"
               aria-label="Share on Twitter"
             >
-              <Twitter size={16} />
+              <Twitter size={14} />
             </button>
             <button
               onClick={() => {
                 window.open(`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(window.location.href)}&description=${encodeURIComponent(product.name)}&media=${encodeURIComponent(product.image)}`, '_blank');
                 toast('Opening Pinterest share', 'info');
               }}
-              className="w-9 h-9 rounded-full bg-[#fef5f1] flex items-center justify-center text-[#8b6f63]/60 hover:bg-[#e60023] hover:text-white transition-all"
+              className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#2d1f24] flex items-center justify-center text-[#8b6f63]/60 dark:text-[#e8ddd5] hover:bg-[#e60023] hover:text-white transition-all border border-[#f5e6e0]/30 dark:border-[#3d2f34]"
               aria-label="Share on Pinterest"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
             </button>
           </div>
+
+          {/* Size Guide Link */}
+          <button
+            onClick={() => setIsSizeGuideOpen(true)}
+            className="inline-flex items-center gap-1.5 text-sm text-[#d4a5a5] hover:text-[#c89a9a] mb-8 transition-colors group"
+          >
+            <Ruler size={15} className="group-hover:scale-110 transition-transform" />
+            Size Guide
+          </button>
 
           {/* Meta Info */}
           <div className="border-t border-[#8b6f63]/10 pt-6 space-y-3 text-sm">
@@ -862,33 +953,166 @@ export function ProductDetailPage() {
               transition={{ duration: 0.2 }}
               className="max-w-3xl"
             >
-              <h3 className="text-lg font-serif text-[#8b6f63] mb-2">Key Ingredients</h3>
-              <p className="text-sm text-[#8b6f63]/50 mb-6">Formulated with carefully selected ingredients for optimal results.</p>
-              <div className="bg-white rounded-2xl border border-[#f5e6e0]/50 overflow-hidden">
-                <div className="grid grid-cols-[1fr_1fr_40px] sm:grid-cols-[1fr_1fr_60px] text-xs font-medium text-[#8b6f63]/50 uppercase tracking-wider border-b border-[#f5e6e0]/50 bg-[#fef5f1]/50">
-                  <div className="px-5 py-3">Ingredient</div>
-                  <div className="px-5 py-3">Purpose</div>
-                  <div className="px-3 py-3 hidden sm:block" />
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-serif text-[#8b6f63]">Ingredients</h3>
+                  <p className="text-sm text-[#8b6f63]/50">Formulated with care for optimal results.</p>
                 </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {INGREDIENTS.map((item, index) => (
-                    <div
-                      key={item.name}
-                      className={`grid grid-cols-[1fr_1fr_40px] sm:grid-cols-[1fr_1fr_60px] items-center ${
-                        index < INGREDIENTS.length - 1 ? 'border-b border-[#f5e6e0]/30' : ''
-                      }`}
+                <button
+                  onClick={() => {
+                    const fullList = INGREDIENTS.map(i => i.name).join(', ');
+                    navigator.clipboard.writeText(fullList).then(() => {
+                      toast('Ingredients copied to clipboard!');
+                    }).catch(() => {
+                      toast('Failed to copy', 'error');
+                    });
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fef5f1] dark:bg-[#2d1f24] border border-[#f5e6e0]/50 dark:border-[#3d2f34] text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#f5e6e0] transition-all"
+                >
+                  <Copy size={12} />
+                  Copy Ingredients
+                </button>
+              </div>
+
+              {/* Key Ingredients Accordion */}
+              <div className="bg-white dark:bg-[#2d1f24] rounded-2xl border border-[#f5e6e0]/50 dark:border-[#3d2f34] overflow-hidden mb-4">
+                <button
+                  onClick={() => setIngredientAccordion(ingredientAccordion === 'key' ? null : 'key')}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#fef5f1]/50 dark:hover:bg-[#3d2f34]/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-[#d4a5a5]" />
+                    <span className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5]">Key Ingredients</span>
+                    <span className="text-xs text-[#8b6f63]/40 ml-1">({KEY_INGREDIENTS.length})</span>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: ingredientAccordion === 'key' ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown size={16} className="text-[#8b6f63]/40" />
+                  </motion.div>
+                </button>
+                <AnimatePresence>
+                  {ingredientAccordion === 'key' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
                     >
-                      <div className="px-5 py-3 text-sm text-[#8b6f63]">{item.name}</div>
-                      <div className="px-5 py-3 text-sm text-[#8b6f63]/60">{item.purpose}</div>
-                      <div className="px-3 py-3 hidden sm:block">
-                        <div className="w-5 h-5 rounded-full border-2 border-green-400 flex items-center justify-center">
-                          <Check size={10} className="text-green-500" />
+                      <div className="px-5 pb-5 flex flex-wrap gap-2.5">
+                        {KEY_INGREDIENTS.map((ki) => (
+                          <Popover key={ki.name} open={activeTooltip === ki.name} onOpenChange={(open) => setActiveTooltip(open ? ki.name : null)}>
+                            <PopoverTrigger asChild>
+                              <button
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium border transition-all hover:scale-105 cursor-pointer"
+                                style={{
+                                  backgroundColor: ki.color + '20',
+                                  borderColor: ki.color + '60',
+                                  color: '#8b6f63',
+                                }}
+                              >
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ki.color }} />
+                                {ki.name}
+                                <Info size={11} className="opacity-50" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-72 p-4" side="top" align="center">
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: ki.color }} />
+                                  <span className="font-medium text-sm text-[#8b6f63] dark:text-[#e8ddd5]">{ki.name}</span>
+                                </div>
+                                <div>
+                                  <span className="text-xs text-[#8b6f63]/50 uppercase tracking-wider">What it does</span>
+                                  <p className="text-sm text-[#8b6f63]/80 dark:text-[#e8ddd5]/80 mt-0.5">{ki.benefit}</p>
+                                </div>
+                                <div>
+                                  <span className="text-xs text-[#8b6f63]/50 uppercase tracking-wider">Good for</span>
+                                  <p className="text-sm text-[#8b6f63]/80 dark:text-[#e8ddd5]/80 mt-0.5">{ki.goodFor}</p>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-[#8b6f63]/50">Popularity:</span>
+                                  <div className="flex items-center gap-0.5">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Star key={i} size={12} className={i < ki.popularity ? 'fill-[#d4a5a5] text-[#d4a5a5]' : 'text-[#8b6f63]/15'} />
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Full Ingredients List Accordion */}
+              <div className="bg-white dark:bg-[#2d1f24] rounded-2xl border border-[#f5e6e0]/50 dark:border-[#3d2f34] overflow-hidden">
+                <button
+                  onClick={() => setIngredientAccordion(ingredientAccordion === 'full' ? null : 'full')}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#fef5f1]/50 dark:hover:bg-[#3d2f34]/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Package size={16} className="text-[#8b6f63]/50" />
+                    <span className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5]">Full Ingredients List</span>
+                    <span className="text-xs text-[#8b6f63]/40 ml-1">({INGREDIENTS.length})</span>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: ingredientAccordion === 'full' ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown size={16} className="text-[#8b6f63]/40" />
+                  </motion.div>
+                </button>
+                <AnimatePresence>
+                  {ingredientAccordion === 'full' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="bg-white dark:bg-[#2d1f24] rounded-b-2xl overflow-hidden">
+                        <div className="grid grid-cols-[1fr_1fr_40px] sm:grid-cols-[1fr_1fr_60px] text-xs font-medium text-[#8b6f63]/50 uppercase tracking-wider border-b border-[#f5e6e0]/50 dark:border-[#3d2f34] bg-[#fef5f1]/50 dark:bg-[#2d1f24]">
+                          <div className="px-5 py-3">Ingredient</div>
+                          <div className="px-5 py-3">Purpose</div>
+                          <div className="px-3 py-3 hidden sm:block" />
+                        </div>
+                        <div className="max-h-80 overflow-y-auto">
+                          {INGREDIENTS.map((item, index) => {
+                            const isKey = KEY_INGREDIENTS.some(ki => item.name.includes(ki.name.split(' (')[0]));
+                            return (
+                              <div
+                                key={item.name}
+                                className={`grid grid-cols-[1fr_1fr_40px] sm:grid-cols-[1fr_1fr_60px] items-center ${
+                                  index < INGREDIENTS.length - 1 ? 'border-b border-[#f5e6e0]/30 dark:border-[#3d2f34]/50' : ''
+                                } ${isKey ? 'bg-[#fef5f1]/30 dark:bg-[#d4a5a5]/5' : ''}`}
+                              >
+                                <div className="px-5 py-3 text-sm text-[#8b6f63] dark:text-[#e8ddd5] flex items-center gap-2">
+                                  {isKey && <span className="w-1.5 h-1.5 rounded-full bg-[#d4a5a5] flex-shrink-0" />}
+                                  {item.name}
+                                </div>
+                                <div className="px-5 py-3 text-sm text-[#8b6f63]/60 dark:text-[#e8ddd5]/60">{item.purpose}</div>
+                                <div className="px-3 py-3 hidden sm:block">
+                                  <div className="w-5 h-5 rounded-full border-2 border-green-400 flex items-center justify-center">
+                                    <Check size={10} className="text-green-500" />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
+
               <p className="text-xs text-[#8b6f63]/40 mt-4">
                 * Full ingredient list available on product packaging. This product is cruelty-free and vegan.
               </p>
@@ -1208,9 +1432,10 @@ export function ProductDetailPage() {
         </AnimatePresence>
       </motion.div>
 
-      {/* You May Also Like */}
-      {relatedProducts.length > 0 && (
+      {/* Complete the Look */}
+      {completeLookProducts.length > 0 && (
         <motion.section
+          className="mb-16"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -1220,7 +1445,47 @@ export function ProductDetailPage() {
               className="text-2xl font-serif text-[#8b6f63]"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.35 }}
+            >
+              Complete the Look
+            </motion.h2>
+            <motion.div
+              className="flex-1 h-px bg-gradient-to-r from-[#d4a5a5]/40 to-transparent"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+              style={{ originX: 0 }}
+            />
+          </div>
+          <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-thin snap-x snap-mandatory -mx-4 px-4 lg:mx-0 lg:px-0">
+            {completeLookProducts.map((rp, index) => (
+              <motion.div
+                key={rp.id}
+                className="flex-shrink-0 w-[200px] sm:w-[220px] lg:w-[240px] snap-start"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + index * 0.1 }}
+              >
+                <ProductCard product={rp} />
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+      )}
+
+      {/* You May Also Like */}
+      {mayAlsoLikeProducts.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <div className="flex items-center gap-4 mb-8">
+            <motion.h2
+              className="text-2xl font-serif text-[#8b6f63]"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.45 }}
             >
               You May Also Like
             </motion.h2>
@@ -1233,12 +1498,12 @@ export function ProductDetailPage() {
             />
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {relatedProducts.map((rp, index) => (
+            {mayAlsoLikeProducts.map((rp, index) => (
               <motion.div
                 key={rp.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + index * 0.1 }}
+                transition={{ delay: 0.5 + index * 0.1 }}
               >
                 <ProductCard product={rp} />
               </motion.div>
@@ -1246,6 +1511,126 @@ export function ProductDetailPage() {
           </div>
         </motion.section>
       )}
+
+      {/* Size Guide Modal */}
+      <AnimatePresence>
+        {isSizeGuideOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setIsSizeGuideOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Size Guide"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="bg-white dark:bg-[#2d1f24] rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 pb-4 border-b border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+                <div className="flex items-center gap-2">
+                  <Ruler size={20} className="text-[#d4a5a5]" />
+                  <h3 className="text-lg font-serif text-[#8b6f63] dark:text-[#e8ddd5]">Size Guide</h3>
+                </div>
+                <button
+                  onClick={() => setIsSizeGuideOpen(false)}
+                  className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#3d2f34] flex items-center justify-center text-[#8b6f63]/60 hover:text-[#8b6f63] transition-colors"
+                  aria-label="Close size guide"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Size Table */}
+                <div>
+                  <h4 className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-3">Shade Sizes</h4>
+                  <div className="bg-[#fef5f1] dark:bg-[#3d2f34]/50 rounded-xl overflow-hidden">
+                    <div className="grid grid-cols-3 text-xs font-medium text-[#8b6f63]/50 uppercase tracking-wider border-b border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+                      <div className="px-4 py-2.5">Size</div>
+                      <div className="px-4 py-2.5">Dimensions</div>
+                      <div className="px-4 py-2.5">Best For</div>
+                    </div>
+                    {SIZE_GUIDE.map((item, index) => (
+                      <motion.div
+                        key={item.size}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 + index * 0.08 }}
+                        className={`grid grid-cols-3 text-sm ${index < SIZE_GUIDE.length - 1 ? 'border-b border-[#f5e6e0]/30 dark:border-[#3d2f34]/50' : ''}`}
+                      >
+                        <div className="px-4 py-3 font-medium text-[#8b6f63] dark:text-[#e8ddd5]">{item.size}</div>
+                        <div className="px-4 py-3 text-[#8b6f63]/70 dark:text-[#e8ddd5]/70">{item.dimensions}</div>
+                        <div className="px-4 py-3 text-[#8b6f63]/70 dark:text-[#e8ddd5]/70">{item.recommended}</div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Visual Size Comparison */}
+                <div>
+                  <h4 className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-4">Relative Size Comparison</h4>
+                  <div className="flex items-end justify-center gap-8 py-6 bg-[#fef5f1] dark:bg-[#3d2f34]/50 rounded-xl">
+                    {SIZE_GUIDE.map((item, index) => (
+                      <motion.div
+                        key={item.size}
+                        className="flex flex-col items-center gap-3"
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 + index * 0.12, type: 'spring', stiffness: 300, damping: 20 }}
+                      >
+                        <motion.div
+                          className="rounded-full bg-gradient-to-br from-[#d4a5a5] to-[#c89a9a] shadow-md"
+                          style={{ width: item.diameter, height: item.diameter }}
+                          whileHover={{ scale: 1.1 }}
+                        />
+                        <span className="text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5]">{item.size}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Find Your Shade Tips */}
+                <div>
+                  <h4 className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-3">Find Your Shade</h4>
+                  <div className="space-y-2.5">
+                    {SHADE_TIPS.map((tip, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + index * 0.08 }}
+                        className="flex items-start gap-3 p-3 bg-[#fef5f1] dark:bg-[#3d2f34]/50 rounded-lg"
+                      >
+                        <span className="text-lg flex-shrink-0 mt-0.5">{tip.icon}</span>
+                        <p className="text-sm text-[#8b6f63]/80 dark:text-[#e8ddd5]/80 leading-relaxed">{tip.tip}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 pt-4 border-t border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+                <button
+                  onClick={() => setIsSizeGuideOpen(false)}
+                  className="w-full px-6 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-all active:scale-[0.98] text-sm font-medium"
+                >
+                  Got It
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Fullscreen Lightbox */}
       <AnimatePresence>

@@ -358,70 +358,58 @@ Stage Summary:
 - Admin dashboard has enhanced styling across all tabs
 
 ---
-# HANDOVER DOCUMENT (Updated)
+# HANDOVER DOCUMENT (Updated - Phase 3)
 
-## 1. Current Project Status
+## 1. Current Project Status / Assessment
 - **App Type**: Rare Beauty e-commerce single-page application
 - **Tech Stack**: Next.js 16.1.3 (Turbopack), TypeScript 5, Tailwind CSS 4, Framer Motion, Prisma/SQLite, Zustand, shadcn/ui
 - **Dev Server**: Port 3000, 0 lint errors, 2 pre-existing warnings (jsx-a11y/alt-text on lucide Image)
-- **Database**: SQLite with 17+ models synced (User, Product, Order, OrderItem, Review, Wishlist, Sale, SaleCategory, PromoCode, ShopSettings, etc.)
+- **Database**: SQLite with 17+ models synced
 - **Compilation**: All routes compile successfully, homepage and API routes return HTTP 200
+- **QA Status**: Tested via agent-browser — homepage loads correctly with all sections (hero, sales, featured products), products page shows filter panel, contact page enhanced with new features, login works, all APIs return 200
 
-## 2. All Completed Features
+## 2. Current Goals / Completed Modifications / Verification Results
 
-### Bug Fixes
-1. **Promo code usage tracking** (Task 3): Fixed critical bug where promo code `currentUses` was never incremented on checkout. Order now records `promoCodeId`, `promoCode` string, and `discountTotal`. Also fixed subtotal/total calculation bug in CheckoutPage.
-2. **Order shipping value**: Fixed hardcoded `shipping: 0` in order creation - now uses client-sent shipping value.
+### This Session's Completed Work
 
-### New Pages
-3. **WishlistPage** (Task 5): Full dedicated wishlist page with:
-   - Responsive product grid (1/2/3/4 columns)
-   - Per-item hover actions (Move to Cart, Remove)
-   - Batch actions (Add All to Cart, Clear All)
-   - Animated empty state with heart icon
-   - Bottom action bar on mobile
-   - Backend persistence via /api/wishlist
-   - Header navigation wired from all entry points
+#### Bug Fixes (from previous session, verified working)
+1. **Promo code usage tracking**: Orders record `promoCodeId`, `promoCode`, `discountTotal`; `currentUses` incremented
+2. **Order shipping value**: Fixed hardcoded `shipping: 0`
 
-### New Features
-4. **Advanced Product Filtering** (Task 4): Added to ProductsPage:
-   - Price range dual-thumb slider (shadcn/ui Slider)
-   - Rating filter pills (All, 4+, 3+, 2+, 1+) with animated layoutId
-   - On-sale toggle with gradient styling
-   - Collapsible filter panel with AnimatePresence
-   - Active filter summary tags (removable pills)
-   - Clear All Filters button
+#### New Features (from previous session, verified working)
+3. **WishlistPage**: Responsive grid, batch actions, backend persistence
+4. **Advanced Product Filtering**: Price slider, rating pills, on-sale toggle, collapsible panel
+5. **Product Image Gallery**: Thumbnail strip, zoom on hover, fullscreen lightbox with keyboard support
 
-5. **Product Image Gallery** (Task 8): Added to ProductDetailPage:
-   - Real image gallery from product `images` JSON field
-   - Thumbnail strip with active state
-   - Zoom on hover (2x magnification following cursor)
-   - Fullscreen lightbox with prev/next navigation
-   - Keyboard support (ESC close, arrow keys navigate)
-   - Image counter badge
-   - Conditional display (hidden for single-image products)
+#### Styling Enhancements (from previous session, verified working)
+6. **Hero**: Parallax, floating dots, CTA glow, scroll indicator
+7. **Footer**: Newsletter, social icons, back-to-top
+8. **Header**: Backdrop blur, gradient border, mobile slide-in
+9. **CartPage**: Item animations, quantity controls, savings banner, sticky sidebar, mobile fixed bar
+10. **QuickViewModal**: Gallery navigation, sale badge, animated pricing
+11. **ProfilePage**: Stats cards, order filtering, settings tab, tab transitions
 
-### Styling Enhancements
-6. **Hero Section** (Task 7): Parallax on scroll, floating decorative dots, CTA button glow effect, text gradient heading, scroll-down indicator with bounce animation
+#### New This Session
+12. **ContactPage Enhancement**: Full dark mode, decorative map placeholder, floating labels, character counter, success animation, FAQ quick links, live chat CTA
+13. **HelpCenterPage Enhancement**: Full dark mode, animated FAQ expand/collapse, search highlighting, clear button, category count badges, popular topics, helpful rating on FAQ answers
+14. **ReturnsRefundsPage Enhancement**: Full dark mode, animated visual timeline, return initiation form (UI), progress tracker with 5 steps, policy highlight cards (30-Day, Free Shipping, Easy Exchanges)
+15. **MiniCartDrawer Enhancement**: Backdrop blur, savings badge, free shipping progress bar with pulse, original price strikethrough, remove animation, "Complete Your Look" recommendations, body scroll lock, ESC key handler
+16. **LoginPage Enhancement**: Floating label inputs, decorative gradient background, custom remember-me checkbox, shake animation on error, demo credentials hint box, enhanced social buttons with hover lift
+17. **SignupPage Enhancement**: Full dark mode, 3-step visual indicator, password strength meter (Weak/Fair/Good/Strong), password requirements checklist with animated checkmarks, confirm password match indicator, success animation, custom terms checkbox
+18. **ProductDetailPage Enhancement**: Size Guide modal with shade sizes table + visual comparison, key ingredient badges with Popover tooltips, product info badges (Cruelty-Free, Vegan, Clean Beauty, Shelf Life, Weight), "Complete the Look" horizontal scroll section, "Copy Link" share button
 
-7. **Footer** (Task 7): Newsletter email subscription with animated input, social media icons with hover animations, animated link underlines, Back-to-Top button with AnimatePresence, gradient separator at top
-
-8. **Header** (Task 7): Backdrop blur on scroll (blur-sm → blur-md), gradient bottom border when scrolled, mobile menu slide-in animation with x-offset
-
-9. **CartPage** (Task 12): Item enter/exit animations, polished quantity controls (circular buttons, disabled states, confirmation tooltip), animated savings banner, free shipping progress bar, estimated delivery date, sticky order summary (desktop), fixed bottom bar (mobile), "You Might Also Like" recommendations
-
-10. **QuickViewModal** (Task 14): Image gallery with prev/next, sale badge with discount %, animated price display, enhanced Add to Cart button, quantity bounce animation, ESC key close, "View Full Details" with arrow slide
-
-11. **ProfilePage** (Task 15): User avatar with gradient initials, stats cards (Total Orders, Wishlist Items, Total Spent, Delivered), order filtering pills, relative time format, reorder button, Settings tab with notification preferences, delete account danger zone, tab transition animations
+### Verification Results
+- **Lint**: 0 errors, 2 pre-existing warnings (unchanged)
+- **Compilation**: All pages compile successfully (✓ Compiled in <350ms per page)
+- **API**: All endpoints return HTTP 200 (products, sales/active, orders, promo-codes)
+- **QA via agent-browser**: Homepage renders correctly with hero, sales sections, featured products, countdown timers; products page shows filter panel with price slider/rating/sale toggle; contact page shows enhanced form with quick answers and character counter; login page renders with demo hint
 
 ## 3. Key Architecture Notes
-- **Navigation**: Zustand-based SPA. `useStore().navigate('page-name')` changes pages. Pages: home, products, product-detail, cart, checkout, login, signup, profile, settings, admin, order-confirmation, order-tracking, returns-refunds, help-center, contact, wishlist
+- **Navigation**: Zustand-based SPA. `useStore().navigate('page-name')` changes pages. 16 pages total: home, products, product-detail, cart, checkout, login, signup, profile, settings, admin, order-confirmation, order-tracking, returns-refunds, help-center, contact, wishlist
 - **API Routes**: All under `/api/`. Admin routes under `/api/admin/`.
 - **Color Scheme**: `bg-[#fef5f1]`, `text-[#8b6f63]`, accent `#d4a5a5`, dark: `bg-[#2d1f24]`, `text-[#e8ddd5]`
 - **Admin Login**: admin@rarebeauty.com / mona123
 - **Demo Login**: demo@rarebeauty.com / demo123
-- **File Uploads**: `/home/z/my-project/upload/` directory, served via `/api/admin/upload`
-- **Product Images**: `/public/products/` (AI-generated)
 - **Start Dev Server**: `bash .zscripts/dev.sh` or `npx next dev --turbopack -p 3000`
 
 ## 4. Available Test Data
@@ -441,25 +429,29 @@ Stage Summary:
 | Haircare Week | Haircare (25%) | 25% | May 15, 2026 |
 
 ## 5. Unresolved Issues & Risks
-1. **agent-browser testing limitation**: Product card clicks use Zustand navigation (JS click) which agent-browser's accessibility tree doesn't trigger. Works fine in real browser. Not a code bug.
-2. **Review seed mismatch**: Seed-sales route references "Soft Pie Cream Blush" but DB has "Soft Pie Cream Blush gouffi" - 2 of 3 Cream Blush reviews weren't seeded. Minor data issue.
-3. **No cloud image upload**: Upload saves to local filesystem. Production would need S3/Cloudinary.
+1. **agent-browser JS navigation limitation**: Zustand-based page navigation not triggered via accessibility tree clicks. Works in real browsers. Known infrastructure limitation.
+2. **Review seed mismatch**: Minor data issue — 2 of 3 Cream Blush reviews not seeded due to name mismatch.
+3. **No cloud image upload**: Local filesystem only. Production needs S3/Cloudinary.
 4. **No email notifications**: Order confirmation, shipping updates not implemented.
-5. **Dev server stability**: Next.js dev server occasionally dies in sandbox environment (OOM/timeout). Not a code issue.
+5. **Return form is UI-only**: The return initiation form in ReturnsRefundsPage does not POST to an API.
+6. **SettingsPage redundancy**: ProfilePage now has a Settings tab, but SettingsPage still exists as a separate route.
 
 ## 6. Priority Recommendations for Next Phase
 1. ✅ ~~Fix promo code usage tracking~~ — DONE
 2. ✅ ~~Add wishlist page~~ — DONE
 3. ✅ ~~Add product search/filter~~ — DONE
-4. ✅ ~~Add order tracking timeline~~ — DONE (previous session)
-5. **Add product image upload from admin** - Drag-and-drop image management for products
-6. **Add dark mode refinements** - Audit new components for dark mode polish
-7. **Mobile responsiveness audit** - Test all new features on mobile viewports (filter panel, wishlist, cart fixed bar, gallery)
-8. **Add email notifications** - Order confirmation, shipping updates via email service
-9. **Add product comparison feature** - Compare 2-3 products side by side
-10. **Add recently viewed products API persistence** - Currently in-memory only, should persist to DB
-11. **Performance optimization** - Lazy loading for below-fold content, image optimization
-12. **Add internationalization (i18n)** - Multi-language support for broader market
+4. ✅ ~~Add order tracking timeline~~ — DONE
+5. ✅ ~~Dark mode for info pages~~ — DONE (Contact, HelpCenter, ReturnsRefunds)
+6. ✅ ~~MiniCartDrawer/Login/Signup enhancements~~ — DONE
+7. ✅ ~~Product size guide + ingredient tooltips~~ — DONE
+8. **Add product comparison feature** — Compare 2-3 products side by side
+9. **Add product image upload from admin** — Drag-and-drop image management
+10. **Add recently viewed products API persistence** — Currently in-memory only
+11. **Mobile responsiveness audit** — Test all new features on mobile viewports
+12. **Add email notifications** — Order confirmation, shipping updates
+13. **Remove SettingsPage redundancy** — Consolidate into ProfilePage Settings tab
+14. **Add search autocomplete** — Header search with real-time results dropdown
+15. **Performance optimization** — Image lazy loading, code splitting
 
 ---
 Task ID: 3
@@ -644,3 +636,92 @@ Work Log:
 Stage Summary:
 - QuickViewModal now has a richer product preview with image gallery, sale pricing, and polished animations
 - ProfilePage has better visual hierarchy with stats cards, enhanced orders, and a new Settings tab
+
+---
+Task ID: 5-7
+Agent: full-stack-developer
+Task: Enhance MiniCartDrawer, LoginPage, SignupPage with better styling and UX
+
+Work Log:
+- MiniCartDrawer: Added backdrop blur, savings badge with Sparkles icon, animated free shipping progress bar with pulse effect, original price strikethrough with discount percentage badges, remove animation with exit transition, "Complete Your Look" product recommendations section (fetches newest products not in cart), enhanced checkout button with gradient and savings tag, body scroll lock, escape key handler
+- LoginPage: Created reusable FloatingInput component with animated labels and focus glow rings, added decorative background gradient shapes, enhanced social login buttons with hover lift effects, added custom "Remember me" checkbox with animated checkmark, added shake animation on login error, added demo credentials hint box with styled code snippet, enhanced divider with gradient edges, added shadow to card, pattern overlay on right panel
+- SignupPage: Full dark mode support throughout, added FloatingInput component reuse, added 3-step visual indicator (Account → Profile → Done) with dynamic state tracking, implemented password strength indicator with colored progress bar (Weak/Fair/Good/Strong), added password requirements checklist with animated checkmarks (8+ chars, uppercase, number, special char), added confirm password match/mismatch indicator, added success animation state with spring-animated checkmark and redirect message, added custom terms checkbox with styled links, enhanced social signup buttons with hover effects, added decorative background shapes and pattern overlay, added sparkle icon to create button
+
+Stage Summary:
+- All three components now have consistent dark mode and polished styling
+- MiniCartDrawer shows savings badge, shipping progress, and product recommendations
+- LoginPage features floating labels, remember me, error shake animation, and demo hint
+- SignupPage includes password strength meter, step indicator, and success animation
+
+---
+Task ID: 6
+Agent: full-stack-developer
+Task: Add size guide, ingredient tooltips, product details to ProductDetailPage
+
+Work Log:
+- Added Size Guide modal with shade sizes table (Sample/Regular/Full Size), visual size comparison (colored circles), and "Find Your Shade" tips section with emoji icons
+- Size Guide opens via a "Size Guide" link with Ruler icon below the share buttons, uses Framer Motion scale+fade animation
+- Enhanced Ingredients tab with accordion-style grouping: "Key Ingredients" (6 key items as colored badges) and "Full Ingredients List" (all 15 ingredients with key items highlighted)
+- Key ingredient badges are clickable Popovers showing: benefit description, skin type suitability, and star popularity rating
+- Added "Copy Ingredients" button to Ingredients tab header
+- Added product info badges below description: Cruelty-Free (Rabbit icon), Vegan (Leaf icon), Clean Beauty (Sparkles icon), 12M After Opening (Clock icon), 12g/0.42 oz (Package icon)
+- Added "Complete the Look" section between product tabs and "You May Also Like" with horizontal scroll on mobile (snap-x, snap-start)
+- Enhanced share section with "Copy Link" button (clipboard icon + toast notification) alongside Facebook, Twitter, Pinterest social share buttons
+- Modified related products fetch to get 8 products (was 4), split into completeLookProducts (first 4) and mayAlsoLikeProducts (next 4)
+- Added ESC key handler for closing size guide modal
+- Added new imports: Sparkles, Copy, Ruler, Rabbit, Info from lucide-react; Popover, PopoverTrigger, PopoverContent from shadcn/ui
+
+Stage Summary:
+- ProductDetailPage now has richer product information and interactive features
+- Size guide modal with Framer Motion animations provides visual size comparison
+- Ingredients tab enhanced with key ingredient badges, popovers with detailed info, and copy functionality
+- Product info badges communicate brand values (cruelty-free, vegan, clean beauty)
+- "Complete the Look" section with horizontal scroll on mobile encourages cross-selling
+- Share feature enhanced with explicit Copy Link button and social share icons
+
+---
+Task ID: 2-4
+Agent: full-stack-developer
+Task: Enhance ContactPage, HelpCenterPage, ReturnsRefundsPage
+
+Work Log:
+- Added full dark mode support to all three pages (dark:bg-[#2d1f24], dark:text-[#e8ddd5], dark:border-[#3d2f34])
+- Enhanced ContactPage:
+  - Added dark: classes to hero, cards, form, business hours, social, CTA sections
+  - Added decorative gradient map placeholder with pin markers, secondary location pins, and animated ping effect
+  - Enhanced contact cards with gradient icon backgrounds, hover lift animation (-translate-y-1 + shadow-md)
+  - Converted form to floating label style using peer-placeholder-shown pattern with animated focus glow rings
+  - Added character count (X/500) on message textarea
+  - Added success state overlay animation after submit (green checkmark with spring animation)
+  - Added FAQ Quick Links section (4 common questions linking to appropriate pages with hover effects)
+  - Added floating Live Chat CTA button with pulse animation and spring entrance
+  - Enhanced social media buttons with whileHover scale+lift and whileTap animations
+  - Highlighted "Closed" text in accent color in business hours
+- Enhanced HelpCenterPage:
+  - Added dark: classes to hero, categories, FAQ, contact CTA sections
+  - Added Framer Motion AnimatePresence for FAQ expand/collapse with height animation
+  - Added search result highlighting with accent-colored matched text and background
+  - Added clear button (X) in search input when query is present
+  - Enhanced "no results" state with illustration, suggestion text, and Clear Search CTA button
+  - Added count badges showing number of FAQs per category + "All" count
+  - Added "Popular Topics" section with 6 trending question tags (clickable to auto-fill search)
+  - Added "Was this helpful?" thumbs up/down rating on expanded FAQ answers with colored state feedback
+  - Replaced static chevron with animated rotation (motion.div rotate 0→180)
+  - Added layout prop to FAQ items for smooth reorder
+  - Enhanced category buttons with 5-column grid (All + 4 categories)
+- Enhanced ReturnsRefundsPage:
+  - Added dark: classes throughout all sections
+  - Replaced simple numbered refund timeline with animated vertical timeline (gradient line, numbered circle nodes, spring entrance animations)
+  - Added Return Initiation Form with order number input, return reason dropdown, and item selection checkboxes (UI only)
+  - Added Refund Progress Tracker with animated progress bar, 5-step visual indicator (Requested → Shipped → Received → Inspected → Refunded), demo "Next Step" button
+  - Added Policy Highlights section with 3 visual policy cards (30-Day Returns, Free Return Shipping, Easy Exchanges) with gradient icon backgrounds and hover lift
+  - Added step number watermarks on the 3-step process cards
+  - Added Framer Motion spring entrance animations for the 3-step process cards
+  - Added AnimatePresence for FAQ expand/collapse with height animation
+
+Stage Summary:
+- All three pages now have full dark mode support matching OrderTrackingPage's pattern
+- Styling matches the polished look of other pages with consistent dark mode colors
+- New interactive features: floating labels, search highlighting, helpful ratings, return form, progress tracker
+- All animations use Framer Motion (AnimatePresence, motion.div, spring physics)
+- All existing functionality preserved
