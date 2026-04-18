@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ShoppingBag, User, Menu, X, Heart, LogOut, Settings, Package, ChevronRight, Sun, Moon } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, X, Heart, LogOut, Settings, Package, ChevronRight, Sun, Moon, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore, type Product } from '@/store/store';
 import { toast } from '@/lib/toast';
@@ -375,6 +375,15 @@ export function Header() {
                             <Settings size={16} className="text-[#8b6f63]/60 dark:text-[#a89898]" />
                             Settings
                           </button>
+                          {user?.role === 'admin' && (
+                            <button
+                              onClick={() => { navigate('admin'); setIsProfileOpen(false); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#d4a5a5] hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors text-left font-medium"
+                            >
+                              <Shield size={16} className="text-[#d4a5a5]" />
+                              Admin Dashboard
+                            </button>
+                          )}
                         </div>
 
                         {/* Divider + Sign Out */}

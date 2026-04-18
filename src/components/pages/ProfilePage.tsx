@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '@/store/store';
-import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, Star, Plus, Trash2 } from 'lucide-react';
+import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, Star, Plus, Trash2, Loader2, Shield } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -255,7 +255,7 @@ export function ProfilePage() {
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <motion.div
-            className="bg-white rounded-lg shadow-sm p-6 sticky top-24 border border-[#f5e6e0]/50"
+            className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 sticky top-24 border border-[#f5e6e0]/50 dark:border-[#3d2f34]"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
           >
@@ -264,8 +264,8 @@ export function ProfilePage() {
               <div className="w-24 h-24 bg-[#fef5f1] rounded-full mx-auto mb-4 flex items-center justify-center">
                 <User size={40} className="text-[#d4a5a5]" />
               </div>
-              <h2 className="text-xl text-[#8b6f63] mb-1">{user.name}</h2>
-              <p className="text-sm text-[#8b6f63]/70">{user.email}</p>
+              <h2 className="text-xl text-[#8b6f63] dark:text-[#e8ddd5] mb-1">{user.name}</h2>
+              <p className="text-sm text-[#8b6f63]/70 dark:text-[#a89898]">{user.email}</p>
               {user.phone && <p className="text-sm text-[#8b6f63]/50 mt-1">{user.phone}</p>}
               {user.birthdate && (
                 <p className="text-sm text-[#8b6f63]/50 mt-1">
@@ -294,8 +294,8 @@ export function ProfilePage() {
                 onClick={() => setActiveTab('orders')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   activeTab === 'orders'
-                    ? 'bg-[#fef5f1] text-[#d4a5a5] font-medium'
-                    : 'text-[#8b6f63] hover:bg-[#fef5f1]'
+                    ? 'bg-[#fef5f1] dark:bg-[#3d2f34] text-[#d4a5a5] font-medium'
+                    : 'text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34]'
                 }`}
               >
                 <Package size={20} />
@@ -308,8 +308,8 @@ export function ProfilePage() {
                 onClick={() => setActiveTab('wishlist')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   activeTab === 'wishlist'
-                    ? 'bg-[#fef5f1] text-[#d4a5a5] font-medium'
-                    : 'text-[#8b6f63] hover:bg-[#fef5f1]'
+                    ? 'bg-[#fef5f1] dark:bg-[#3d2f34] text-[#d4a5a5] font-medium'
+                    : 'text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34]'
                 }`}
               >
                 <Heart size={20} />
@@ -322,8 +322,8 @@ export function ProfilePage() {
                 onClick={() => setActiveTab('addresses')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   activeTab === 'addresses'
-                    ? 'bg-[#fef5f1] text-[#d4a5a5] font-medium'
-                    : 'text-[#8b6f63] hover:bg-[#fef5f1]'
+                    ? 'bg-[#fef5f1] dark:bg-[#3d2f34] text-[#d4a5a5] font-medium'
+                    : 'text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34]'
                 }`}
               >
                 <MapPin size={20} />
@@ -331,11 +331,20 @@ export function ProfilePage() {
               </button>
               <button
                 onClick={() => navigate('settings')}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#8b6f63] hover:bg-[#fef5f1] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors"
               >
                 <Settings size={20} />
                 <span>Settings</span>
               </button>
+              {user.role === 'admin' && (
+                <button
+                  onClick={() => navigate('admin')}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#d4a5a5] hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors font-medium"
+                >
+                  <Shield size={20} />
+                  <span>Admin Dashboard</span>
+                </button>
+              )}
               <div className="border-t border-[#8b6f63]/10 pt-2 mt-2">
                 <button
                   onClick={handleLogout}
@@ -354,9 +363,9 @@ export function ProfilePage() {
           {/* Orders Tab */}
           {activeTab === 'orders' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <h1 className="text-2xl font-serif text-[#8b6f63] mb-6">My Orders</h1>
+              <h1 className="text-2xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-6">My Orders</h1>
               {orders.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-[#f5e6e0]/50">
+                <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-12 text-center border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
                   <Package size={48} className="text-[#8b6f63]/20 mx-auto mb-4" />
                   <h3 className="text-lg text-[#8b6f63] mb-2">No Orders Yet</h3>
                   <p className="text-sm text-[#8b6f63]/70 mb-4">Start shopping to see your orders here.</p>
@@ -367,7 +376,7 @@ export function ProfilePage() {
               ) : (
                 <div className="space-y-4">
                   {orders.map((order) => (
-                    <div key={order.id} className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 hover:shadow-md transition-shadow">
+                    <div key={order.id} className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 dark:border-[#3d2f34] hover:shadow-md transition-shadow">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 pb-4 border-b border-[#8b6f63]/20">
                         <div>
                           <p className="text-sm font-medium text-[#8b6f63]">Order #{order.orderNumber}</p>
@@ -419,9 +428,9 @@ export function ProfilePage() {
           {/* Wishlist Tab */}
           {activeTab === 'wishlist' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <h1 className="text-2xl font-serif text-[#8b6f63] mb-6">My Wishlist</h1>
+              <h1 className="text-2xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-6">My Wishlist</h1>
               {wishlistProducts.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-[#f5e6e0]/50">
+                <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-12 text-center border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
                   <Heart size={48} className="text-[#8b6f63]/20 mx-auto mb-4" />
                   <h3 className="text-lg text-[#8b6f63] mb-2">Your Wishlist is Empty</h3>
                   <p className="text-sm text-[#8b6f63]/70 mb-4">Save items you love for later.</p>
@@ -432,7 +441,7 @@ export function ProfilePage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {wishlistProducts.map((product) => (
-                    <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-[#f5e6e0]/50 hover:shadow-md transition-shadow group">
+                    <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-[#f5e6e0]/50 dark:border-[#3d2f34] hover:shadow-md transition-shadow group">
                       <div
                         className="aspect-square bg-[#fef5f1] overflow-hidden cursor-pointer relative"
                         onClick={() => { useStore.getState().setProductId(product.id); navigate('product-detail'); }}
@@ -497,7 +506,7 @@ export function ProfilePage() {
                 </button>
               </div>
               {addresses.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-[#f5e6e0]/50">
+                <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-12 text-center border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
                   <MapPin size={48} className="text-[#8b6f63]/20 mx-auto mb-4" />
                   <h3 className="text-lg text-[#8b6f63] mb-2">No Saved Addresses</h3>
                   <p className="text-sm text-[#8b6f63]/70 mb-4">Add your shipping address for faster checkout</p>
@@ -511,7 +520,7 @@ export function ProfilePage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {addresses.map((address) => (
-                    <div key={address.id} className="bg-white rounded-lg shadow-sm p-6 relative border border-[#f5e6e0]/50 hover:shadow-md transition-shadow">
+                    <div key={address.id} className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 relative border border-[#f5e6e0]/50 dark:border-[#3d2f34] hover:shadow-md transition-shadow">
                       {address.isDefault && (
                         <span className="absolute top-4 right-4 px-3 py-1 bg-[#d4a5a5] text-white text-xs rounded-full">
                           Default
@@ -571,7 +580,7 @@ export function ProfilePage() {
           >
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
             <motion.div
-              className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="relative bg-white dark:bg-[#2d1f24] rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -695,7 +704,7 @@ export function ProfilePage() {
                     disabled={addressSaving}
                     className="flex-1 px-4 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                   >
-                    {addressSaving ? <Trash2 size={18} className="animate-spin" /> : null}
+                    {addressSaving ? <Loader2 size={18} className="animate-spin" /> : null}
                     {addressSaving ? 'Saving...' : editingAddress ? 'Update Address' : 'Add Address'}
                   </button>
                 </div>

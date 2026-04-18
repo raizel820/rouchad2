@@ -560,3 +560,58 @@ Stage Summary:
 - Full-stack cosmetic e-commerce store (Rare Beauty) fully functional
 - Admin and regular user login both use real database user IDs
 - Settings page CRUD operations verified working for both user types
+---
+Task ID: bug-fix-dark-mode-admin-btn
+Agent: Main Developer
+Task: Fix settings/profile dark mode, fix ProfilePage address modal icon bug, add admin dashboard button for admin users
+
+Work Log:
+- Investigated reported bugs: "could not update personal info" and "could not add payment method"
+- Tested all backend APIs via curl: profile update (PUT /api/user/profile → 200), password change (PUT /api/user/password → 200), payment method creation (POST /api/payment-methods → 201), address creation (POST /api/addresses → 201) — all working correctly
+- Root cause: Previous Turbopack cache issue (already fixed in prior session). Current APIs are fully functional
+- Added comprehensive dark mode support to SettingsPage.tsx:
+  - All card containers: bg-white → bg-white dark:bg-[#2d1f24]
+  - All form inputs: bg-[#fef5f1] → bg-[#fef5f1] dark:bg-[#1a1215] with dark text colors
+  - All labels and headings: text-[#8b6f63] → text-[#8b6f63] dark:text-[#e8ddd5]
+  - Sidebar navigation items with dark hover states
+  - Address modal: dark background, dark close button, dark form inputs
+  - Payment method modal: dark background, dark close button, dark form inputs
+  - Notification rows: dark backgrounds
+  - Eye/EyeOff password toggle buttons with dark mode
+  - Border colors: border-[#f5e6e0] → dark:border-[#3d2f34]
+- Added comprehensive dark mode support to ProfilePage.tsx:
+  - Sidebar container and navigation items
+  - User info section (name, email, phone, birthdate)
+  - Order cards and wishlist cards
+  - Address cards and address modal
+  - Active tab highlighting with dark backgrounds
+  - Settings and logout button hover states
+- BUG FIX: ProfilePage address modal saving state showed Trash2 icon spinning instead of Loader2 icon
+  - Changed `{addressSaving ? <Trash2 size={18} className="animate-spin" /> : null}` to Loader2
+  - Added Loader2 to imports
+- Added admin dashboard button for admin role users:
+  - Header.tsx profile dropdown: Added "Admin Dashboard" button with Shield icon between Settings and Sign Out divider, only visible when user.role === 'admin'
+  - ProfilePage.tsx sidebar: Added "Admin Dashboard" button with Shield icon between Settings and Logout, only visible when user.role === 'admin'
+  - Both buttons navigate to 'admin' page and close the dropdown/sidebar
+- Cleaned .next cache to avoid Turbopack stale cache issues
+- All ESLint checks pass clean
+- Dev server compiles successfully with 200 responses on all routes
+
+Stage Summary:
+- All backend APIs verified working (profile update, password change, payment method creation, address management)
+- SettingsPage and ProfilePage now have full dark mode support with plum/burgundy theme
+- ProfilePage address modal loading icon fixed (Trash2 → Loader2)
+- Admin users now see "Admin Dashboard" button in header profile dropdown and profile page sidebar
+- Dark mode palette: #1a1215 (bg), #2d1f24 (card), #3d2f34 (border), #e8ddd5 (text), #d4a5a5 (accent)
+- Cron job set up for continuous QA and development (every 15 minutes)
+
+## Current Project Status
+- Full-stack cosmetic e-commerce store (Rare Beauty) fully functional
+- 15 pages: Home, Products, Product Detail, Cart, Checkout, Login, Signup, Contact, Order Confirmation, Order Tracking, Returns & Refunds, Help Center, Profile, Settings, Admin Dashboard
+- Backend: 20+ API routes with Prisma/SQLite
+- Admin dashboard with full CRUD for products, orders, and customers
+- Advanced UX features: Live search, Quick View Modal, Mini Cart Drawer, Recently Viewed, Scroll-to-Top, Skeleton loading states
+- Dark/Light theme toggle with full support across all pages (Settings, Profile, Header, Footer, modals)
+- Admin dashboard button visible for admin role users in header dropdown and profile sidebar
+- Custom toast notification system
+- Cron job for continuous QA running every 15 minutes

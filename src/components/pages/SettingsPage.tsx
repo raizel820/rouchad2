@@ -537,7 +537,7 @@ export function SettingsPage() {
       {/* Back Button */}
       <motion.button
         onClick={() => navigate('profile')}
-        className="inline-flex items-center gap-2 text-[#8b6f63] hover:text-[#d4a5a5] mb-8 transition-colors"
+        className="inline-flex items-center gap-2 text-[#8b6f63] dark:text-[#e8ddd5] hover:text-[#d4a5a5] mb-8 transition-colors"
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
       >
@@ -546,7 +546,7 @@ export function SettingsPage() {
       </motion.button>
 
       <motion.h1
-        className="text-3xl font-serif text-[#8b6f63] mb-8"
+        className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-8"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
@@ -557,7 +557,7 @@ export function SettingsPage() {
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <motion.div
-            className="bg-white rounded-lg shadow-sm p-4 sticky top-24 border border-[#f5e6e0]/50"
+            className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-4 sticky top-24 border border-[#f5e6e0]/50 dark:border-[#3d2f34]"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
           >
@@ -568,8 +568,8 @@ export function SettingsPage() {
                   onClick={() => setActiveSection(item.key)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     activeSection === item.key
-                      ? 'bg-[#fef5f1] text-[#d4a5a5] font-medium'
-                      : 'text-[#8b6f63] hover:bg-[#fef5f1]'
+                      ? 'bg-[#fef5f1] dark:bg-[#3d2f34] text-[#d4a5a5] font-medium'
+                      : 'text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34]'
                   }`}
                 >
                   <item.icon size={20} />
@@ -593,12 +593,12 @@ export function SettingsPage() {
                 exit={{ opacity: 0, y: -10 }}
               >
                 {/* Personal Information */}
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
-                  <h2 className="text-2xl font-serif text-[#8b6f63] mb-6">Personal Information</h2>
+                <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+                  <h2 className="text-2xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-6">Personal Information</h2>
                   <form onSubmit={handleAccountUpdate} className="space-y-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                        <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                           <User className="inline mr-2" size={14} />
                           First Name
                         </label>
@@ -606,12 +606,12 @@ export function SettingsPage() {
                           type="text"
                           value={accountData.firstName}
                           onChange={(e) => setAccountData({ ...accountData, firstName: e.target.value })}
-                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                        <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                           <User className="inline mr-2" size={14} />
                           Last Name
                         </label>
@@ -619,12 +619,12 @@ export function SettingsPage() {
                           type="text"
                           value={accountData.lastName}
                           onChange={(e) => setAccountData({ ...accountData, lastName: e.target.value })}
-                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                        <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                           <Mail className="inline mr-2" size={14} />
                           Email Address
                         </label>
@@ -632,12 +632,12 @@ export function SettingsPage() {
                           type="email"
                           value={accountData.email}
                           onChange={(e) => setAccountData({ ...accountData, email: e.target.value })}
-                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                        <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                           <Phone className="inline mr-2" size={14} />
                           Phone Number
                         </label>
@@ -646,11 +646,11 @@ export function SettingsPage() {
                           value={accountData.phone}
                           onChange={(e) => setAccountData({ ...accountData, phone: e.target.value })}
                           placeholder="+1 (555) 000-0000"
-                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                        <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                           <Calendar className="inline mr-2" size={14} />
                           Date of Birth
                         </label>
@@ -659,10 +659,10 @@ export function SettingsPage() {
                           value={accountData.dateOfBirth}
                           onChange={(e) => setAccountData({ ...accountData, dateOfBirth: e.target.value })}
                           max={new Date().toISOString().split('T')[0]}
-                          className="w-full md:w-1/2 px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          className="w-full md:w-1/2 px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                         />
                         {accountData.dateOfBirth && (
-                          <p className="text-xs text-[#8b6f63]/50 mt-1">
+                          <p className="text-xs text-[#8b6f63]/50 dark:text-[#a89898]/60 mt-1">
                             {new Date(accountData.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                           </p>
                         )}
@@ -682,9 +682,9 @@ export function SettingsPage() {
                 </div>
 
                 {/* Addresses Section */}
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
+                <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-serif text-[#8b6f63]">Saved Addresses</h2>
+                    <h2 className="text-2xl font-serif text-[#8b6f63] dark:text-[#e8ddd5]">Saved Addresses</h2>
                     <button
                       onClick={() => openAddressModal()}
                       className="px-4 py-2 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors flex items-center gap-1.5"
@@ -696,7 +696,7 @@ export function SettingsPage() {
                   {addresses.length === 0 ? (
                     <div className="text-center py-8">
                       <MapPin size={40} className="text-[#8b6f63]/20 mx-auto mb-3" />
-                      <p className="text-[#8b6f63]/60 mb-3">No saved addresses yet</p>
+                      <p className="text-[#8b6f63]/60 dark:text-[#a89898] mb-3">No saved addresses yet</p>
                       <button
                         onClick={() => openAddressModal()}
                         className="text-[#d4a5a5] hover:underline text-sm"
@@ -707,7 +707,7 @@ export function SettingsPage() {
                   ) : (
                     <div className="space-y-3">
                       {addresses.map((address) => (
-                        <div key={address.id} className="flex items-start justify-between p-4 bg-[#fef5f1] rounded-lg border border-[#f5e6e0]/50">
+                        <div key={address.id} className="flex items-start justify-between p-4 bg-[#fef5f1] dark:bg-[#1a1215] rounded-lg border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-semibold uppercase tracking-wide text-[#d4a5a5]">{address.label}</span>
@@ -716,15 +716,15 @@ export function SettingsPage() {
                               )}
                             </div>
                             <p className="text-[#8b6f63] text-sm font-medium">{address.name}</p>
-                            <p className="text-[#8b6f63]/70 text-sm">{address.street}</p>
-                            <p className="text-[#8b6f63]/70 text-sm">{address.city}, {address.state} {address.zipCode}</p>
-                            <p className="text-[#8b6f63]/50 text-xs mt-1">{address.country}{address.phone ? ` · ${address.phone}` : ''}</p>
+                            <p className="text-[#8b6f63]/70 dark:text-[#a89898] text-sm">{address.street}</p>
+                            <p className="text-[#8b6f63]/70 dark:text-[#a89898] text-sm">{address.city}, {address.state} {address.zipCode}</p>
+                            <p className="text-[#8b6f63]/50 dark:text-[#a89898]/60 text-xs mt-1">{address.country}{address.phone ? ` · ${address.phone}` : ''}</p>
                           </div>
                           <div className="flex items-center gap-1 ml-4 flex-shrink-0">
                             {!address.isDefault && (
                               <button
                                 onClick={() => handleSetDefaultAddress(address.id)}
-                                className="p-2 text-[#8b6f63]/60 hover:text-[#d4a5a5] rounded-lg hover:bg-white transition-colors"
+                                className="p-2 text-[#8b6f63]/60 dark:text-[#a89898] hover:text-[#d4a5a5] rounded-lg hover:bg-white dark:hover:bg-[#3d2f34] transition-colors"
                                 title="Set as default"
                               >
                                 <Star size={16} />
@@ -732,14 +732,14 @@ export function SettingsPage() {
                             )}
                             <button
                               onClick={() => openAddressModal(address)}
-                              className="p-2 text-[#8b6f63]/60 hover:text-[#d4a5a5] rounded-lg hover:bg-white transition-colors"
+                              className="p-2 text-[#8b6f63]/60 dark:text-[#a89898] hover:text-[#d4a5a5] rounded-lg hover:bg-white dark:hover:bg-[#3d2f34] transition-colors"
                               title="Edit"
                             >
                               <Pencil size={16} />
                             </button>
                             <button
                               onClick={() => handleDeleteAddress(address.id)}
-                              className="p-2 text-[#8b6f63]/60 hover:text-red-500 rounded-lg hover:bg-white transition-colors"
+                              className="p-2 text-[#8b6f63]/60 dark:text-[#a89898] hover:text-red-500 rounded-lg hover:bg-white dark:hover:bg-[#3d2f34] transition-colors"
                               title="Delete"
                             >
                               <Trash2 size={16} />
@@ -762,12 +762,12 @@ export function SettingsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
-                  <h2 className="text-2xl font-serif text-[#8b6f63] mb-2">Change Password</h2>
-                  <p className="text-sm text-[#8b6f63]/60 mb-6">Ensure your account stays secure by updating your password regularly</p>
+                <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+                  <h2 className="text-2xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Change Password</h2>
+                  <p className="text-sm text-[#8b6f63]/60 dark:text-[#a89898] mb-6">Ensure your account stays secure by updating your password regularly</p>
                   <form onSubmit={handlePasswordChange} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                      <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                         <Lock className="inline mr-2" size={14} />
                         Current Password
                       </label>
@@ -778,7 +778,7 @@ export function SettingsPage() {
                           onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                           placeholder="Enter current password"
                           required
-                          className="w-full px-4 py-3 pr-12 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          className="w-full px-4 py-3 pr-12 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                         />
                         <button
                           type="button"
@@ -790,7 +790,7 @@ export function SettingsPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                      <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                         <Lock className="inline mr-2" size={14} />
                         New Password
                       </label>
@@ -802,7 +802,7 @@ export function SettingsPage() {
                           placeholder="Enter new password (min 6 characters)"
                           required
                           minLength={6}
-                          className="w-full px-4 py-3 pr-12 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          className="w-full px-4 py-3 pr-12 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                         />
                         <button
                           type="button"
@@ -834,7 +834,7 @@ export function SettingsPage() {
                               );
                             })}
                           </div>
-                          <p className="text-xs text-[#8b6f63]/50 mt-1">
+                          <p className="text-xs text-[#8b6f63]/50 dark:text-[#a89898]/60 mt-1">
                             {passwordData.newPassword.length < 6
                               ? 'Too short'
                               : passwordData.newPassword.length < 8
@@ -849,7 +849,7 @@ export function SettingsPage() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                      <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                         <Lock className="inline mr-2" size={14} />
                         Confirm New Password
                       </label>
@@ -859,7 +859,7 @@ export function SettingsPage() {
                         onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                         placeholder="Confirm new password"
                         required
-                        className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                       />
                       {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
                         <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
@@ -878,11 +878,11 @@ export function SettingsPage() {
                   </form>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
+                <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-medium text-[#8b6f63] mb-1">Two-Factor Authentication</h3>
-                      <p className="text-sm text-[#8b6f63]/60">Add an extra layer of security to your account</p>
+                      <p className="text-sm text-[#8b6f63]/60 dark:text-[#a89898]">Add an extra layer of security to your account</p>
                     </div>
                     <button
                       onClick={() => toast('2FA setup coming soon!', 'info')}
@@ -904,11 +904,11 @@ export function SettingsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
+                <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h2 className="text-2xl font-serif text-[#8b6f63] mb-1">Payment Methods</h2>
-                      <p className="text-sm text-[#8b6f63]/60">Manage your saved payment methods</p>
+                      <p className="text-sm text-[#8b6f63]/60 dark:text-[#a89898]">Manage your saved payment methods</p>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -933,7 +933,7 @@ export function SettingsPage() {
                     <div className="text-center py-12">
                       <CreditCard size={48} className="text-[#8b6f63]/20 mx-auto mb-4" />
                       <h3 className="text-lg text-[#8b6f63] mb-2">No Payment Methods</h3>
-                      <p className="text-sm text-[#8b6f63]/60 mb-4">Add a payment method for faster checkout</p>
+                      <p className="text-sm text-[#8b6f63]/60 dark:text-[#a89898] mb-4">Add a payment method for faster checkout</p>
                       <div className="flex gap-3 justify-center">
                         <button
                           onClick={handleAddPayOnReceive}
@@ -981,7 +981,7 @@ export function SettingsPage() {
                                   {getPaymentDescription(pm)}
                                 </p>
                                 {!isCash && (
-                                  <p className="text-xs text-[#8b6f63]/50">
+                                  <p className="text-xs text-[#8b6f63]/50 dark:text-[#a89898]/60">
                                     Expires {String(pm.expiryMonth || '').padStart(2, '0')}/{pm.expiryYear || ''} · {pm.holderName || ''}
                                   </p>
                                 )}
@@ -1017,21 +1017,21 @@ export function SettingsPage() {
             {activeSection === 'notifications' && (
               <motion.div
                 key="notifications"
-                className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50"
+                className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 dark:border-[#3d2f34]"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
                 <h2 className="text-2xl font-serif text-[#8b6f63] mb-2">Notification Preferences</h2>
-                <p className="text-sm text-[#8b6f63]/60 mb-6">Choose what notifications you want to receive</p>
+                <p className="text-sm text-[#8b6f63]/60 dark:text-[#a89898] mb-6">Choose what notifications you want to receive</p>
                 <div className="space-y-3">
                   {Object.entries(notifications).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between p-4 bg-[#fef5f1] rounded-lg border border-[#f5e6e0]/30">
+                    <div key={key} className="flex items-center justify-between p-4 bg-[#fef5f1] dark:bg-[#1a1215] rounded-lg border border-[#f5e6e0]/30 dark:border-[#3d2f34]">
                       <div>
                         <p className="text-[#8b6f63] font-medium capitalize">
                           {key.replace(/([A-Z])/g, ' $1').trim()}
                         </p>
-                        <p className="text-sm text-[#8b6f63]/60">{getNotificationDescription(key)}</p>
+                        <p className="text-sm text-[#8b6f63]/60 dark:text-[#a89898]">{getNotificationDescription(key)}</p>
                       </div>
                       <button
                         onClick={() => handleNotificationToggle(key as keyof typeof notifications)}
@@ -1056,26 +1056,26 @@ export function SettingsPage() {
             {activeSection === 'preferences' && (
               <motion.div
                 key="preferences"
-                className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 space-y-6"
+                className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 dark:border-[#3d2f34] space-y-6"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
                 <div>
                   <h2 className="text-2xl font-serif text-[#8b6f63] mb-2">Preferences</h2>
-                  <p className="text-sm text-[#8b6f63]/60">Customize your shopping experience</p>
+                  <p className="text-sm text-[#8b6f63]/60 dark:text-[#a89898]">Customize your shopping experience</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                    <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                       <Globe className="inline mr-2" size={14} />
                       Language
                     </label>
                     <select
                       value={preferences.language}
                       onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     >
                       <option value="English">English</option>
                       <option value="Spanish">Spanish</option>
@@ -1084,13 +1084,13 @@ export function SettingsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                    <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                       Currency
                     </label>
                     <select
                       value={preferences.currency}
                       onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     >
                       <option value="USD">USD ($)</option>
                       <option value="EUR">EUR (€)</option>
@@ -1098,13 +1098,13 @@ export function SettingsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                    <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">
                       Theme
                     </label>
                     <select
                       value={preferences.theme}
                       onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     >
                       <option value="light">Light</option>
                       <option value="dark">Dark</option>
@@ -1129,22 +1129,22 @@ export function SettingsPage() {
           >
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
             <motion.div
-              className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="relative bg-white dark:bg-[#2d1f24] rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-serif text-[#8b6f63]">
+                <h3 className="text-xl font-serif text-[#8b6f63] dark:text-[#e8ddd5]">
                   {editingAddress ? 'Edit Address' : 'Add New Address'}
                 </h3>
-                <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-[#fef5f1] rounded-full transition-colors">
-                  <X size={20} className="text-[#8b6f63]" />
+                <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] rounded-full transition-colors">
+                  <X size={20} className="text-[#8b6f63] dark:text-[#e8ddd5]" />
                 </button>
               </div>
               <form onSubmit={handleAddressSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Label</label>
+                  <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Label</label>
                   <div className="flex gap-2">
                     {['Home', 'Work', 'Other'].map((label) => (
                       <button
@@ -1163,76 +1163,76 @@ export function SettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Full Name</label>
+                  <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Full Name</label>
                   <input
                     type="text"
                     value={addressForm.name}
                     onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
                     required
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Street Address</label>
+                  <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Street Address</label>
                   <input
                     type="text"
                     value={addressForm.street}
                     onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
                     required
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">City</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">City</label>
                     <input
                       type="text"
                       value={addressForm.city}
                       onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">State / Province</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">State / Province</label>
                     <input
                       type="text"
                       value={addressForm.state}
                       onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">ZIP Code</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">ZIP Code</label>
                     <input
                       type="text"
                       value={addressForm.zipCode}
                       onChange={(e) => setAddressForm({ ...addressForm, zipCode: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">Country</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Country</label>
                     <input
                       type="text"
                       value={addressForm.country}
                       onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Phone (optional)</label>
+                  <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Phone (optional)</label>
                   <input
                     type="tel"
                     value={addressForm.phone}
                     onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                   />
                 </div>
                 <div className="flex items-center gap-2 pt-2">
@@ -1281,20 +1281,20 @@ export function SettingsPage() {
           >
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowPaymentModal(false)} />
             <motion.div
-              className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+              className="relative bg-white dark:bg-[#2d1f24] rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-serif text-[#8b6f63]">Add Card</h3>
-                <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-[#fef5f1] rounded-full transition-colors">
-                  <X size={20} className="text-[#8b6f63]" />
+                <h3 className="text-xl font-serif text-[#8b6f63] dark:text-[#e8ddd5]">Add Card</h3>
+                <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] rounded-full transition-colors">
+                  <X size={20} className="text-[#8b6f63] dark:text-[#e8ddd5]" />
                 </button>
               </div>
               <form onSubmit={handlePaymentSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Card Type</label>
+                  <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Card Type</label>
                   <div className="grid grid-cols-2 gap-2">
                     {CARD_TYPES.map((card) => (
                       <button
@@ -1314,34 +1314,34 @@ export function SettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Card Number</label>
+                  <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Card Number</label>
                   <input
                     type="text"
                     value={paymentForm.cardNumber}
                     onChange={(e) => setPaymentForm({ ...paymentForm, cardNumber: e.target.value.replace(/[^\d\s]/g, '').slice(0, 19) })}
                     placeholder="1234 5678 9012 3456"
                     required
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all font-mono"
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Cardholder Name</label>
+                  <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Cardholder Name</label>
                   <input
                     type="text"
                     value={paymentForm.holderName}
                     onChange={(e) => setPaymentForm({ ...paymentForm, holderName: e.target.value })}
                     required
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">Expiry Month</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Expiry Month</label>
                     <select
                       value={paymentForm.expiryMonth}
                       onChange={(e) => setPaymentForm({ ...paymentForm, expiryMonth: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     >
                       <option value="">MM</option>
                       {Array.from({ length: 12 }, (_, i) => (
@@ -1350,12 +1350,12 @@ export function SettingsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">Expiry Year</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] mb-2">Expiry Year</label>
                     <select
                       value={paymentForm.expiryYear}
                       onChange={(e) => setPaymentForm({ ...paymentForm, expiryYear: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] border border-[#f5e6e0]/80 dark:border-[#3d2f34] text-[#8b6f63] dark:text-[#e8ddd5] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     >
                       <option value="">YYYY</option>
                       {Array.from({ length: 12 }, (_, i) => (
