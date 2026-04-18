@@ -523,6 +523,43 @@ Stage Summary:
 - Custom toast notification system (replaced sonner)
 - Cron job set up for continuous QA and development (every 15 minutes)
 
+---
+Task ID: round10-qa-improvements
+Agent: Full-Stack Developer
+Task: QuickView color selector, admin category CRUD verification, product card color dots
+
+Work Log:
+- Read worklog (500+ lines) and all relevant source files to understand project state
+- Verified AdminDashboard already has full category CRUD (was implemented in previous round 12): Add Category button, Edit button on pills, Delete with confirmation, modal form with name/description, API integration with success/error toasts — no changes needed
+- Rewrote QuickViewModal.tsx:
+  - Added useEffect to fetch full product data from `/api/products/[id]` on mount (to get `colors` field not in Zustand Product type)
+  - Added `availableColors` and `selectedColor` state (initialized as empty with loading=true)
+  - Auto-selects first color when colors are fetched
+  - Color selector UI matching ProductDetailPage style: circular swatches (w-8 h-8), ring on selected (`border-[#8b6f63] ring-2 ring-[#8b6f63]/20`), hover scale animation
+  - Color label display showing selected color name
+  - "{N} colors available" helper text
+  - Loading skeleton for colors while fetching (4 pulse circles)
+  - Passes selected color to addToCart instead of hardcoded 'default'
+  - Toast shows color name when adding to cart with colors
+  - Comprehensive dark mode classes throughout: bg-white → bg-white dark:bg-[#2d1f24], text-[#8b6f63] → text-[#8b6f63] dark:text-[#e8ddd5], bg-[#fef5f1] → bg-[#fef5f1] dark:bg-[#3d2f34]
+- Rewrote ProductCard.tsx:
+  - Added useEffect to fetch product colors from `/api/products/[id]`
+  - Stores up to 5 colors, displays first 3 as small dots (w-3.5 h-3.5) with `+N` overflow indicator
+  - Color dots placed between product name and star rating
+  - Each dot has border-gray-200 dark:border-gray-600 and shadow-sm
+  - Comprehensive dark mode classes throughout: bg-white dark:bg-[#2d1f24], text-[#8b6f63] dark:text-[#e8ddd5], hover states on badges and buttons
+  - Hover overlay buttons (Eye, Heart, ShoppingBag) have dark mode bg variants
+- Fixed lint error (react-hooks/set-state-in-effect): moved `setLoadingColors(true)` out of useEffect by initializing state as `true`
+- All ESLint checks pass clean (zero errors)
+- Dev server compiles successfully with all `/api/products/[id]` calls returning 200
+
+Stage Summary:
+- QuickViewModal now has functional color selector matching ProductDetailPage style, with full dark mode support
+- ProductCard now shows 2-3 color dots (with +N overflow) below product name, with dark mode support
+- Admin Dashboard category CRUD verified as already fully functional
+- Rose-gold (#d4a5a5) and brown (#8b6f63) theme preserved throughout
+- All changes are responsive and accessible with proper ARIA labels
+
 ## Recommended Next Steps
 1. **Hero section**: Replace emoji placeholders with real product image collage
 2. **Checkout testing**: End-to-end checkout flow testing via agent-browser
