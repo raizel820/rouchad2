@@ -12,6 +12,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (data.category !== undefined) updateData.category = data.category;
     if (data.image !== undefined) updateData.image = data.image;
     if (data.description !== undefined) updateData.description = data.description;
+    if (data.ingredients !== undefined) updateData.ingredients = data.ingredients || null;
+    if (data.colors !== undefined) updateData.colors = data.colors || null;
     if (data.badge !== undefined) updateData.badge = data.badge || null;
     if (data.stock !== undefined) updateData.stock = parseInt(data.stock);
     if (data.rating !== undefined) updateData.rating = parseFloat(data.rating);
@@ -29,7 +31,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    // Delete related records first
     await db.review.deleteMany({ where: { productId: id } });
     await db.wishlist.deleteMany({ where: { productId: id } });
     await db.orderItem.deleteMany({ where: { productId: id } });

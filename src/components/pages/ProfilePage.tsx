@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '@/store/store';
-import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, Star, Plus, Trash2, Loader2, Shield } from 'lucide-react';
+import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, Star, Plus, Trash2, Loader2, Shield, XCircle } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -236,13 +236,41 @@ export function ProfilePage() {
     navigate('home');
   };
 
+  const [cancelingOrderId, setCancelingOrderId] = useState<string | null>(null);
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Delivered': return 'text-green-600 bg-green-50';
-      case 'Shipped': case 'In Transit': return 'text-blue-600 bg-blue-50';
-      case 'Processing': return 'text-orange-600 bg-orange-50';
-      default: return 'text-gray-600 bg-gray-50';
+      case 'Delivered': return 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400';
+      case 'Shipped': case 'In Transit': return 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400';
+      case 'Processing': return 'text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400';
+      case 'Cancelled': return 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400';
+      default: return 'text-gray-600 bg-gray-50 dark:bg-gray-800 dark:text-gray-400';
     }
+  };
+
+  const canCancelOrder = (status: string) => {
+    return ['Pending', 'Processing'].includes(status);
+  };
+
+  const handleCancelOrder = async (orderId: string, orderNumber: string) => {
+    if (!confirm(`Are you sure you want to cancel order #${orderNumber}? This action cannot be undone.`)) return;
+    setCancelingOrderId(orderId);
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: orderId, status: 'Cancelled' }),
+      });
+      if (res.ok) {
+        toast(`Order #${orderNumber} has been cancelled`);
+        fetchOrders();
+      } else {
+        toast('Failed to cancel order', 'error');
+      }
+    } catch {
+      toast('Failed to cancel order', 'error');
+    }
+    setCancelingOrderId(null);
   };
 
   if (!user) return null;
@@ -410,13 +438,23 @@ export function ProfilePage() {
                         ))}
                       </div>
 
-                      <div className="mt-4 pt-4 border-t border-[#8b6f63]/20 flex gap-3">
+                      <div className="mt-4 pt-4 border-t border-[#8b6f63]/20 flex flex-wrap gap-3">
                         <button onClick={() => { useStore.getState().setLastOrderId(order.id); navigate('order-tracking'); }} className="px-4 py-2 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors">
                           Track Order
                         </button>
-                        <button onClick={() => { useStore.getState().setLastOrderId(order.id); navigate('order-confirmation'); }} className="px-4 py-2 border border-[#d4a5a5] text-[#d4a5a5] rounded-full text-sm hover:bg-[#fef5f1] transition-colors">
+                        <button onClick={() => { useStore.getState().setLastOrderId(order.id); navigate('order-confirmation'); }} className="px-4 py-2 border border-[#d4a5a5] text-[#d4a5a5] rounded-full text-sm hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors">
                           View Details
                         </button>
+                        {canCancelOrder(order.status) && (
+                          <button
+                            onClick={() => handleCancelOrder(order.id, order.orderNumber)}
+                            disabled={cancelingOrderId === order.id}
+                            className="px-4 py-2 border border-red-300 text-red-500 rounded-full text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-1.5 disabled:opacity-60"
+                          >
+                            {cancelingOrderId === order.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                            Cancel Order
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
