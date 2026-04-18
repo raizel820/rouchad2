@@ -46,10 +46,10 @@ model PaymentMethod {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type       String
-  lastFour   String
-  expiryMonth Int
-  expiryYear  Int
-  holderName String
+  lastFour   String?
+  expiryMonth Int?
+  expiryYear  Int?
+  holderName String?
   isPreferred Boolean  @default(false)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -94,6 +94,7 @@ model Order {
   zipCode        String
   country        String
   trackingNumber String?
+  paymentMethod  String     @default("credit_card")
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   orderItems     OrderItem[]

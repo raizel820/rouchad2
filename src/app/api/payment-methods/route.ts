@@ -26,23 +26,32 @@ export async function POST(request: Request) {
   try {
     const { userId, type, lastFour, expiryMonth, expiryYear, holderName, isPreferred } = await request.json();
 
-    if (!userId || !type || !lastFour || !expiryMonth || !expiryYear || !holderName) {
-      return NextResponse.json({ error: 'All required fields must be provided' }, { status: 400 });
+    if (!userId || !type) {
+      return NextResponse.json({ error: 'User ID and type are required' }, { status: 400 });
     }
 
-    // Validate card number (last four digits)
-    if (!/^\d{4}$/.test(lastFour)) {
-      return NextResponse.json({ error: 'Last four digits must be exactly 4 digits' }, { status: 400 });
-    }
+    const paymentType = type.toUpperCase();
 
-    // Validate expiry
-    const month = parseInt(expiryMonth);
-    const year = parseInt(expiryYear);
-    if (month < 1 || month > 12) {
-      return NextResponse.json({ error: 'Invalid expiry month' }, { status: 400 });
-    }
-    if (year < 2024 || year > 2035) {
-      return NextResponse.json({ error: 'Invalid expiry year' }, { status: 400 });
+    // For card types, validate card-specific fields
+    if (paymentType !== 'PAY_ON_RECEIVE' && paymentType !== 'CASH_ON_DELIVERY') {
+      if (!lastFour || !expiryMonth || !expiryYear || !holderName) {
+        return NextResponse.json({ error: 'Card number, expiry, and holder name are required for card payments' }, { status: 400 });
+      }
+
+      // Validate last four digits
+      if (!/^\d{4}$/.test(lastFour)) {
+        return NextResponse.json({ error: 'Last four digits must be exactly 4 digits' }, { status: 400 });
+      }
+
+      // Validate expiry
+      const month = parseInt(expiryMonth);
+      const year = parseInt(expiryYear);
+      if (month < 1 || month > 12) {
+        return NextResponse.json({ error: 'Invalid expiry month' }, { status: 400 });
+      }
+      if (year < 2024 || year > 2035) {
+        return NextResponse.json({ error: 'Invalid expiry year' }, { status: 400 });
+      }
     }
 
     // If setting as preferred, unset others
@@ -67,11 +76,11 @@ export async function POST(request: Request) {
     const paymentMethod = await db.paymentMethod.create({
       data: {
         userId,
-        type: type.toUpperCase(),
-        lastFour,
-        expiryMonth: month,
-        expiryYear: year,
-        holderName,
+        type: paymentType,
+        lastFour: lastFour || null,
+        expiryMonth: paymentType === 'PAY_ON_RECEIVE' || paymentType === 'CASH_ON_DELIVERY' ? null : parseInt(expiryMonth),
+        expiryYear: paymentType === 'PAY_ON_RECEIVE' || paymentType === 'CASH_ON_DELIVERY' ? null : parseInt(expiryYear),
+        holderName: holderName || null,
         isPreferred: shouldBePreferred,
       },
     });

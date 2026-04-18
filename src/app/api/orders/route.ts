@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       subtotal,
       tax,
       total,
+      paymentMethod,
     } = body;
 
     const orderNumber = 'RB' + Date.now().toString().slice(-8);
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
         tax,
         shipping: 0,
         total,
+        paymentMethod: paymentMethod || 'credit_card',
         firstName,
         lastName,
         email,

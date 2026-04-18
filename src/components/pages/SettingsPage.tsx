@@ -21,6 +21,9 @@ import {
   Loader2,
   Check,
   Calendar,
+  Pencil,
+  MapPin,
+  Banknote,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,10 +44,10 @@ interface Address {
 interface PaymentMethodItem {
   id: string;
   type: string;
-  lastFour: string;
-  expiryMonth: number;
-  expiryYear: number;
-  holderName: string;
+  lastFour: string | null;
+  expiryMonth: number | null;
+  expiryYear: number | null;
+  holderName: string | null;
   isPreferred: boolean;
 }
 
@@ -55,14 +58,33 @@ const CARD_TYPES = [
   { value: 'DISCOVER', label: 'Discover', color: '#ff6000' },
 ];
 
-const getCardIcon = (type: string) => {
+const getPaymentIcon = (type: string) => {
   switch (type.toUpperCase()) {
-    case 'VISA': return '💳';
-    case 'MASTERCARD': return '💳';
-    case 'AMEX': return '💳';
-    case 'DISCOVER': return '💳';
-    default: return '💳';
+    case 'VISA':
+    case 'MASTERCARD':
+    case 'AMEX':
+    case 'DISCOVER':
+      return <CreditCard size={20} className="text-[#8b6f63]" />;
+    case 'PAY_ON_RECEIVE':
+      return <Banknote size={20} className="text-[#8b6f63]" />;
+    default:
+      return <CreditCard size={20} className="text-[#8b6f63]" />;
   }
+};
+
+const getPaymentLabel = (type: string) => {
+  switch (type.toUpperCase()) {
+    case 'PAY_ON_RECEIVE': return 'Pay on Receive';
+    case 'CASH_ON_DELIVERY': return 'Cash on Delivery';
+    default: return type;
+  }
+};
+
+const getPaymentDescription = (pm: PaymentMethodItem) => {
+  if (pm.type.toUpperCase() === 'PAY_ON_RECEIVE' || pm.type.toUpperCase() === 'CASH_ON_DELIVERY') {
+    return 'Pay when you receive your order';
+  }
+  return `•••• •••• •••• ${pm.lastFour || '****'}`;
 };
 
 export function SettingsPage() {
@@ -135,6 +157,24 @@ export function SettingsPage() {
     theme: 'light',
   });
 
+  const fetchAddresses = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/addresses?userId=${user.id}`);
+      const data = await res.json();
+      if (Array.isArray(data)) setAddresses(data);
+    } catch {}
+  };
+
+  const fetchPaymentMethods = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/payment-methods?userId=${user.id}`);
+      const data = await res.json();
+      if (Array.isArray(data)) setPaymentMethods(data);
+    } catch {}
+  };
+
   // Load user profile data on mount
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -146,7 +186,7 @@ export function SettingsPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.id) {
-          const nameParts = data.name.split(' ');
+          const nameParts = (data.name || '').split(' ');
           setAccountData({
             firstName: nameParts[0] || '',
             lastName: nameParts.slice(1).join(' ') || '',
@@ -169,24 +209,6 @@ export function SettingsPage() {
       .then((data) => { if (Array.isArray(data)) setPaymentMethods(data); })
       .catch(() => {});
   }, [isAuthenticated, user, navigate]);
-
-  const fetchAddresses = async () => {
-    if (!user) return;
-    try {
-      const res = await fetch(`/api/addresses?userId=${user.id}`);
-      const data = await res.json();
-      if (Array.isArray(data)) setAddresses(data);
-    } catch {}
-  };
-
-  const fetchPaymentMethods = async () => {
-    if (!user) return;
-    try {
-      const res = await fetch(`/api/payment-methods?userId=${user.id}`);
-      const data = await res.json();
-      if (Array.isArray(data)) setPaymentMethods(data);
-    } catch {}
-  };
 
   if (!isAuthenticated || !user) return null;
 
@@ -331,6 +353,7 @@ export function SettingsPage() {
   };
 
   const handleDeleteAddress = async (addressId: string) => {
+    if (!confirm('Are you sure you want to delete this address?')) return;
     try {
       const res = await fetch(`/api/addresses/${addressId}?userId=${user.id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -372,6 +395,37 @@ export function SettingsPage() {
       isPreferred: paymentMethods.length === 0,
     });
     setShowPaymentModal(true);
+  };
+
+  const handleAddPayOnReceive = async () => {
+    // Check if already exists
+    const existing = paymentMethods.find(pm => pm.type.toUpperCase() === 'PAY_ON_RECEIVE');
+    if (existing) {
+      toast('Pay on Receive is already added', 'error');
+      return;
+    }
+    setPaymentSaving(true);
+    try {
+      const res = await fetch('/api/payment-methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          type: 'PAY_ON_RECEIVE',
+          isPreferred: paymentMethods.length === 0,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast('Pay on Receive added successfully!');
+        await fetchPaymentMethods();
+      } else {
+        toast(data.error || 'Failed to add payment method', 'error');
+      }
+    } catch {
+      toast('Failed to add payment method', 'error');
+    }
+    setPaymentSaving(false);
   };
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
@@ -422,6 +476,7 @@ export function SettingsPage() {
   };
 
   const handleDeletePayment = async (paymentId: string) => {
+    if (!confirm('Are you sure you want to remove this payment method?')) return;
     try {
       const res = await fetch(`/api/payment-methods/${paymentId}?userId=${user.id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -528,501 +583,538 @@ export function SettingsPage() {
         {/* Main Content */}
         <div className="lg:col-span-3">
           {/* ===== ACCOUNT SETTINGS ===== */}
-          {activeSection === 'account' && (
-            <motion.div
-              className="space-y-6"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              {/* Personal Information */}
-              <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
-                <h2 className="text-2xl font-serif text-[#8b6f63] mb-6">Personal Information</h2>
-                <form onSubmit={handleAccountUpdate} className="space-y-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
-                        <User className="inline mr-2" size={14} />
-                        First Name
-                      </label>
-                      <input
-                        type="text"
-                        value={accountData.firstName}
-                        onChange={(e) => setAccountData({ ...accountData, firstName: e.target.value })}
-                        className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                        required
-                      />
+          <AnimatePresence mode="wait">
+            {activeSection === 'account' && (
+              <motion.div
+                key="account"
+                className="space-y-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                {/* Personal Information */}
+                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
+                  <h2 className="text-2xl font-serif text-[#8b6f63] mb-6">Personal Information</h2>
+                  <form onSubmit={handleAccountUpdate} className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                          <User className="inline mr-2" size={14} />
+                          First Name
+                        </label>
+                        <input
+                          type="text"
+                          value={accountData.firstName}
+                          onChange={(e) => setAccountData({ ...accountData, firstName: e.target.value })}
+                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                          <User className="inline mr-2" size={14} />
+                          Last Name
+                        </label>
+                        <input
+                          type="text"
+                          value={accountData.lastName}
+                          onChange={(e) => setAccountData({ ...accountData, lastName: e.target.value })}
+                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                          <Mail className="inline mr-2" size={14} />
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          value={accountData.email}
+                          onChange={(e) => setAccountData({ ...accountData, email: e.target.value })}
+                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                          <Phone className="inline mr-2" size={14} />
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          value={accountData.phone}
+                          onChange={(e) => setAccountData({ ...accountData, phone: e.target.value })}
+                          placeholder="+1 (555) 000-0000"
+                          className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                          <Calendar className="inline mr-2" size={14} />
+                          Date of Birth
+                        </label>
+                        <input
+                          type="date"
+                          value={accountData.dateOfBirth}
+                          onChange={(e) => setAccountData({ ...accountData, dateOfBirth: e.target.value })}
+                          max={new Date().toISOString().split('T')[0]}
+                          className="w-full md:w-1/2 px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                        />
+                        {accountData.dateOfBirth && (
+                          <p className="text-xs text-[#8b6f63]/50 mt-1">
+                            {new Date(accountData.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
-                        <User className="inline mr-2" size={14} />
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        value={accountData.lastName}
-                        onChange={(e) => setAccountData({ ...accountData, lastName: e.target.value })}
-                        className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                        required
-                      />
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        className="px-8 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                        {saving ? 'Saving...' : 'Save Changes'}
+                      </button>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
-                        <Mail className="inline mr-2" size={14} />
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        value={accountData.email}
-                        onChange={(e) => setAccountData({ ...accountData, email: e.target.value })}
-                        className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
-                        <Phone className="inline mr-2" size={14} />
-                        Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        value={accountData.phone}
-                        onChange={(e) => setAccountData({ ...accountData, phone: e.target.value })}
-                        placeholder="+1 (555) 000-0000"
-                        className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
-                        <Calendar className="inline mr-2" size={14} />
-                        Date of Birth
-                      </label>
-                      <input
-                        type="date"
-                        value={accountData.dateOfBirth}
-                        onChange={(e) => setAccountData({ ...accountData, dateOfBirth: e.target.value })}
-                        max={new Date().toISOString().split('T')[0]}
-                        className="w-full md:w-1/2 px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                      />
-                      {accountData.dateOfBirth && (
-                        <p className="text-xs text-[#8b6f63]/50 mt-1">
-                          {new Date(accountData.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="px-8 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {saving ? <Loader2 size={18} className="animate-spin" /> : null}
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Addresses Section in Account */}
-              <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-serif text-[#8b6f63]">Saved Addresses</h2>
-                  <button
-                    onClick={() => openAddressModal()}
-                    className="px-4 py-2 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus size={16} />
-                    Add Address
-                  </button>
+                  </form>
                 </div>
-                {addresses.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-[#8b6f63]/60 mb-3">No saved addresses yet</p>
+
+                {/* Addresses Section */}
+                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-serif text-[#8b6f63]">Saved Addresses</h2>
                     <button
                       onClick={() => openAddressModal()}
-                      className="text-[#d4a5a5] hover:underline text-sm"
+                      className="px-4 py-2 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors flex items-center gap-1.5"
                     >
-                      + Add your first address
+                      <Plus size={16} />
+                      Add Address
                     </button>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {addresses.map((address) => (
-                      <div key={address.id} className="flex items-start justify-between p-4 bg-[#fef5f1] rounded-lg border border-[#f5e6e0]/50">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-[#d4a5a5]">{address.label}</span>
-                            {address.isDefault && (
-                              <span className="text-xs px-2 py-0.5 bg-[#d4a5a5] text-white rounded-full">Default</span>
-                            )}
-                          </div>
-                          <p className="text-[#8b6f63] text-sm font-medium">{address.name}</p>
-                          <p className="text-[#8b6f63]/70 text-sm">{address.street}</p>
-                          <p className="text-[#8b6f63]/70 text-sm">{address.city}, {address.state} {address.zipCode}</p>
-                          <p className="text-[#8b6f63]/50 text-xs mt-1">{address.country}</p>
-                        </div>
-                        <div className="flex items-center gap-1 ml-4 flex-shrink-0">
-                          {!address.isDefault && (
-                            <button
-                              onClick={() => handleSetDefaultAddress(address.id)}
-                              className="p-2 text-[#8b6f63]/60 hover:text-[#d4a5a5] rounded-lg hover:bg-white transition-colors"
-                              title="Set as default"
-                            >
-                              <Star size={16} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => openAddressModal(address)}
-                            className="p-2 text-[#8b6f63]/60 hover:text-[#d4a5a5] rounded-lg hover:bg-white transition-colors"
-                            title="Edit"
-                          >
-                            <User size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAddress(address.id)}
-                            className="p-2 text-[#8b6f63]/60 hover:text-red-500 rounded-lg hover:bg-white transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* ===== SECURITY SETTINGS ===== */}
-          {activeSection === 'security' && (
-            <motion.div
-              className="space-y-6"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
-                <h2 className="text-2xl font-serif text-[#8b6f63] mb-2">Change Password</h2>
-                <p className="text-sm text-[#8b6f63]/60 mb-6">Ensure your account stays secure by updating your password regularly</p>
-                <form onSubmit={handlePasswordChange} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">
-                      <Lock className="inline mr-2" size={14} />
-                      Current Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showCurrentPassword ? 'text' : 'password'}
-                        value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                        placeholder="Enter current password"
-                        required
-                        className="w-full px-4 py-3 pr-12 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                      />
+                  {addresses.length === 0 ? (
+                    <div className="text-center py-8">
+                      <MapPin size={40} className="text-[#8b6f63]/20 mx-auto mb-3" />
+                      <p className="text-[#8b6f63]/60 mb-3">No saved addresses yet</p>
                       <button
-                        type="button"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b6f63]/40 hover:text-[#8b6f63] transition-colors"
+                        onClick={() => openAddressModal()}
+                        className="text-[#d4a5a5] hover:underline text-sm"
                       >
-                        {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        + Add your first address
                       </button>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">
-                      <Lock className="inline mr-2" size={14} />
-                      New Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showNewPassword ? 'text' : 'password'}
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                        placeholder="Enter new password (min 6 characters)"
-                        required
-                        minLength={6}
-                        className="w-full px-4 py-3 pr-12 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b6f63]/40 hover:text-[#8b6f63] transition-colors"
-                      >
-                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                    {/* Password strength indicator */}
-                    {passwordData.newPassword && (
-                      <div className="mt-2">
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4].map((level) => {
-                            const strength = passwordData.newPassword.length >= 8 && /[A-Z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword) && /[^A-Za-z0-9]/.test(passwordData.newPassword)
-                              ? 4
-                              : passwordData.newPassword.length >= 6 && /[A-Z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword)
-                                ? 3
-                                : passwordData.newPassword.length >= 6
-                                  ? 2
-                                  : 1;
-                            const colors = ['bg-red-300', 'bg-orange-300', 'bg-yellow-300', 'bg-green-400'];
-                            return (
-                              <div
-                                key={level}
-                                className={`h-1 flex-1 rounded-full transition-colors ${
-                                  level <= strength ? colors[strength - 1] : 'bg-gray-200'
-                                }`}
-                              />
-                            );
-                          })}
-                        </div>
-                        <p className="text-xs text-[#8b6f63]/50 mt-1">
-                          {passwordData.newPassword.length < 6
-                            ? 'Too short'
-                            : passwordData.newPassword.length < 8
-                              ? 'Weak'
-                              : /[A-Z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword) && /[^A-Za-z0-9]/.test(passwordData.newPassword)
-                                ? 'Strong'
-                                : /[A-Z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword)
-                                  ? 'Good'
-                                  : 'Fair'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">
-                      <Lock className="inline mr-2" size={14} />
-                      Confirm New Password
-                    </label>
-                    <input
-                      type="password"
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                      placeholder="Confirm new password"
-                      required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                    />
-                    {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
-                      <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
-                    )}
-                  </div>
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={passwordSaving || passwordData.newPassword !== passwordData.confirmPassword}
-                      className="px-8 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {passwordSaving ? <Loader2 size={18} className="animate-spin" /> : null}
-                      {passwordSaving ? 'Updating...' : 'Update Password'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-[#8b6f63] mb-1">Two-Factor Authentication</h3>
-                    <p className="text-sm text-[#8b6f63]/60">Add an extra layer of security to your account</p>
-                  </div>
-                  <button
-                    onClick={() => toast('2FA setup coming soon!', 'info')}
-                    className="px-5 py-2.5 border border-[#d4a5a5] text-[#d4a5a5] rounded-full hover:bg-[#fef5f1] transition-colors text-sm font-medium"
-                  >
-                    Enable 2FA
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ===== PAYMENT METHODS ===== */}
-          {activeSection === 'payment' && (
-            <motion.div
-              className="space-y-6"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-serif text-[#8b6f63] mb-1">Payment Methods</h2>
-                    <p className="text-sm text-[#8b6f63]/60">Manage your saved payment methods</p>
-                  </div>
-                  <button
-                    onClick={openPaymentModal}
-                    className="px-4 py-2 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus size={16} />
-                    Add Method
-                  </button>
-                </div>
-
-                {paymentMethods.length === 0 ? (
-                  <div className="text-center py-12">
-                    <CreditCard size={48} className="text-[#8b6f63]/20 mx-auto mb-4" />
-                    <h3 className="text-lg text-[#8b6f63] mb-2">No Payment Methods</h3>
-                    <p className="text-sm text-[#8b6f63]/60 mb-4">Add a payment method for faster checkout</p>
-                    <button
-                      onClick={openPaymentModal}
-                      className="px-6 py-2.5 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors"
-                    >
-                      Add Payment Method
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {paymentMethods.map((pm) => (
-                      <div
-                        key={pm.id}
-                        className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
-                          pm.isPreferred
-                            ? 'bg-[#fef5f1] border-[#d4a5a5]/30'
-                            : 'bg-white border-[#f5e6e0]/50 hover:border-[#d4a5a5]/30'
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-8 rounded-md bg-gradient-to-br from-[#8b6f63]/10 to-[#d4a5a5]/20 flex items-center justify-center text-lg">
-                            {getCardIcon(pm.type)}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-[#8b6f63] font-medium">{pm.type}</p>
-                              {pm.isPreferred && (
-                                <span className="text-xs px-2 py-0.5 bg-[#d4a5a5] text-white rounded-full flex items-center gap-1">
-                                  <Star size={10} className="fill-white" />
-                                  Preferred
-                                </span>
+                  ) : (
+                    <div className="space-y-3">
+                      {addresses.map((address) => (
+                        <div key={address.id} className="flex items-start justify-between p-4 bg-[#fef5f1] rounded-lg border border-[#f5e6e0]/50">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-semibold uppercase tracking-wide text-[#d4a5a5]">{address.label}</span>
+                              {address.isDefault && (
+                                <span className="text-xs px-2 py-0.5 bg-[#d4a5a5] text-white rounded-full">Default</span>
                               )}
                             </div>
-                            <p className="text-sm text-[#8b6f63]/70">
-                              •••• •••• •••• {pm.lastFour}
-                            </p>
-                            <p className="text-xs text-[#8b6f63]/50">
-                              Expires {String(pm.expiryMonth).padStart(2, '0')}/{pm.expiryYear} · {pm.holderName}
-                            </p>
+                            <p className="text-[#8b6f63] text-sm font-medium">{address.name}</p>
+                            <p className="text-[#8b6f63]/70 text-sm">{address.street}</p>
+                            <p className="text-[#8b6f63]/70 text-sm">{address.city}, {address.state} {address.zipCode}</p>
+                            <p className="text-[#8b6f63]/50 text-xs mt-1">{address.country}{address.phone ? ` · ${address.phone}` : ''}</p>
+                          </div>
+                          <div className="flex items-center gap-1 ml-4 flex-shrink-0">
+                            {!address.isDefault && (
+                              <button
+                                onClick={() => handleSetDefaultAddress(address.id)}
+                                className="p-2 text-[#8b6f63]/60 hover:text-[#d4a5a5] rounded-lg hover:bg-white transition-colors"
+                                title="Set as default"
+                              >
+                                <Star size={16} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => openAddressModal(address)}
+                              className="p-2 text-[#8b6f63]/60 hover:text-[#d4a5a5] rounded-lg hover:bg-white transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAddress(address.id)}
+                              className="p-2 text-[#8b6f63]/60 hover:text-red-500 rounded-lg hover:bg-white transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          {!pm.isPreferred && (
-                            <button
-                              onClick={() => handleSetPreferredPayment(pm.id)}
-                              className="px-3 py-1.5 text-xs text-[#d4a5a5] border border-[#d4a5a5]/30 rounded-full hover:bg-[#fef5f1] transition-colors"
-                            >
-                              Set Preferred
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleDeletePayment(pm.id)}
-                            className="p-2 text-[#8b6f63]/40 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
-                            title="Remove"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
 
-          {/* ===== NOTIFICATIONS SETTINGS ===== */}
-          {activeSection === 'notifications' && (
-            <motion.div
-              className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h2 className="text-2xl font-serif text-[#8b6f63] mb-2">Notification Preferences</h2>
-              <p className="text-sm text-[#8b6f63]/60 mb-6">Choose what notifications you want to receive</p>
-              <div className="space-y-3">
-                {Object.entries(notifications).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between p-4 bg-[#fef5f1] rounded-lg border border-[#f5e6e0]/30">
+            {/* ===== SECURITY SETTINGS ===== */}
+            {activeSection === 'security' && (
+              <motion.div
+                key="security"
+                className="space-y-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
+                  <h2 className="text-2xl font-serif text-[#8b6f63] mb-2">Change Password</h2>
+                  <p className="text-sm text-[#8b6f63]/60 mb-6">Ensure your account stays secure by updating your password regularly</p>
+                  <form onSubmit={handlePasswordChange} className="space-y-4">
                     <div>
-                      <p className="text-[#8b6f63] font-medium capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </p>
-                      <p className="text-sm text-[#8b6f63]/60">{getNotificationDescription(key)}</p>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                        <Lock className="inline mr-2" size={14} />
+                        Current Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showCurrentPassword ? 'text' : 'password'}
+                          value={passwordData.currentPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                          placeholder="Enter current password"
+                          required
+                          className="w-full px-4 py-3 pr-12 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b6f63]/40 hover:text-[#8b6f63] transition-colors"
+                        >
+                          {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                        <Lock className="inline mr-2" size={14} />
+                        New Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? 'text' : 'password'}
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                          placeholder="Enter new password (min 6 characters)"
+                          required
+                          minLength={6}
+                          className="w-full px-4 py-3 pr-12 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b6f63]/40 hover:text-[#8b6f63] transition-colors"
+                        >
+                          {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      {passwordData.newPassword && (
+                        <div className="mt-2">
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4].map((level) => {
+                              const strength = passwordData.newPassword.length >= 8 && /[A-Z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword) && /[^A-Za-z0-9]/.test(passwordData.newPassword)
+                                ? 4
+                                : passwordData.newPassword.length >= 6 && /[A-Z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword)
+                                  ? 3
+                                  : passwordData.newPassword.length >= 6
+                                    ? 2
+                                    : 1;
+                              const colors = ['bg-red-300', 'bg-orange-300', 'bg-yellow-300', 'bg-green-400'];
+                              return (
+                                <div
+                                  key={level}
+                                  className={`h-1 flex-1 rounded-full transition-colors ${
+                                    level <= strength ? colors[strength - 1] : 'bg-gray-200'
+                                  }`}
+                                />
+                              );
+                            })}
+                          </div>
+                          <p className="text-xs text-[#8b6f63]/50 mt-1">
+                            {passwordData.newPassword.length < 6
+                              ? 'Too short'
+                              : passwordData.newPassword.length < 8
+                                ? 'Weak'
+                                : /[A-Z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword) && /[^A-Za-z0-9]/.test(passwordData.newPassword)
+                                  ? 'Strong'
+                                  : /[A-Z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword)
+                                    ? 'Good'
+                                    : 'Fair'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                        <Lock className="inline mr-2" size={14} />
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        placeholder="Confirm new password"
+                        required
+                        className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                      />
+                      {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
+                        <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                      )}
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={passwordSaving || passwordData.newPassword !== passwordData.confirmPassword}
+                        className="px-8 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {passwordSaving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                        {passwordSaving ? 'Updating...' : 'Update Password'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium text-[#8b6f63] mb-1">Two-Factor Authentication</h3>
+                      <p className="text-sm text-[#8b6f63]/60">Add an extra layer of security to your account</p>
                     </div>
                     <button
-                      onClick={() => handleNotificationToggle(key as keyof typeof notifications)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        value ? 'bg-[#d4a5a5]' : 'bg-gray-300'
-                      }`}
-                      aria-label={`Toggle ${key}`}
+                      onClick={() => toast('2FA setup coming soon!', 'info')}
+                      className="px-5 py-2.5 border border-[#d4a5a5] text-[#d4a5a5] rounded-full hover:bg-[#fef5f1] transition-colors text-sm font-medium"
                     >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                          value ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
+                      Enable 2FA
                     </button>
                   </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
+                </div>
+              </motion.div>
+            )}
 
-          {/* ===== PREFERENCES ===== */}
-          {activeSection === 'preferences' && (
-            <motion.div
-              className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h2 className="text-2xl font-serif text-[#8b6f63] mb-6">Preferences</h2>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">
-                    <Globe className="inline mr-2" size={14} />
-                    Language
-                  </label>
-                  <select
-                    value={preferences.language}
-                    onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                  >
-                    <option>English</option>
-                    <option>Spanish</option>
-                    <option>French</option>
-                    <option>German</option>
-                  </select>
+            {/* ===== PAYMENT METHODS ===== */}
+            {activeSection === 'payment' && (
+              <motion.div
+                key="payment"
+                className="space-y-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <div className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-serif text-[#8b6f63] mb-1">Payment Methods</h2>
+                      <p className="text-sm text-[#8b6f63]/60">Manage your saved payment methods</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddPayOnReceive}
+                        disabled={!!paymentMethods.find(pm => pm.type.toUpperCase() === 'PAY_ON_RECEIVE')}
+                        className="px-4 py-2 border-2 border-[#d4a5a5] text-[#d4a5a5] rounded-full text-sm hover:bg-[#fef5f1] transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Banknote size={16} />
+                        Pay on Receive
+                      </button>
+                      <button
+                        onClick={openPaymentModal}
+                        className="px-4 py-2 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors flex items-center gap-1.5"
+                      >
+                        <Plus size={16} />
+                        Add Card
+                      </button>
+                    </div>
+                  </div>
+
+                  {paymentMethods.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CreditCard size={48} className="text-[#8b6f63]/20 mx-auto mb-4" />
+                      <h3 className="text-lg text-[#8b6f63] mb-2">No Payment Methods</h3>
+                      <p className="text-sm text-[#8b6f63]/60 mb-4">Add a payment method for faster checkout</p>
+                      <div className="flex gap-3 justify-center">
+                        <button
+                          onClick={handleAddPayOnReceive}
+                          className="px-5 py-2.5 border-2 border-[#d4a5a5] text-[#d4a5a5] rounded-full text-sm hover:bg-[#fef5f1] transition-colors flex items-center gap-2"
+                        >
+                          <Banknote size={16} />
+                          Pay on Receive
+                        </button>
+                        <button
+                          onClick={openPaymentModal}
+                          className="px-5 py-2.5 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors"
+                        >
+                          Add Card
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {paymentMethods.map((pm) => {
+                        const isCash = pm.type.toUpperCase() === 'PAY_ON_RECEIVE' || pm.type.toUpperCase() === 'CASH_ON_DELIVERY';
+                        return (
+                          <div
+                            key={pm.id}
+                            className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                              pm.isPreferred
+                                ? 'bg-[#fef5f1] border-[#d4a5a5]/30'
+                                : 'bg-white border-[#f5e6e0]/50 hover:border-[#d4a5a5]/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-8 rounded-md bg-gradient-to-br from-[#8b6f63]/10 to-[#d4a5a5]/20 flex items-center justify-center">
+                                {getPaymentIcon(pm.type)}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-[#8b6f63] font-medium">{getPaymentLabel(pm.type)}</p>
+                                  {pm.isPreferred && (
+                                    <span className="text-xs px-2 py-0.5 bg-[#d4a5a5] text-white rounded-full flex items-center gap-1">
+                                      <Star size={10} className="fill-white" />
+                                      Preferred
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-[#8b6f63]/70">
+                                  {getPaymentDescription(pm)}
+                                </p>
+                                {!isCash && (
+                                  <p className="text-xs text-[#8b6f63]/50">
+                                    Expires {String(pm.expiryMonth || '').padStart(2, '0')}/{pm.expiryYear || ''} · {pm.holderName || ''}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {!pm.isPreferred && (
+                                <button
+                                  onClick={() => handleSetPreferredPayment(pm.id)}
+                                  className="px-3 py-1.5 text-xs text-[#d4a5a5] border border-[#d4a5a5]/30 rounded-full hover:bg-[#fef5f1] transition-colors"
+                                >
+                                  Set Preferred
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeletePayment(pm.id)}
+                                className="p-2 text-[#8b6f63]/40 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                                title="Remove"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Currency</label>
-                  <select
-                    value={preferences.currency}
-                    onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                  >
-                    <option>USD ($)</option>
-                    <option>EUR (€)</option>
-                    <option>GBP (£)</option>
-                    <option>JPY (¥)</option>
-                  </select>
+              </motion.div>
+            )}
+
+            {/* ===== NOTIFICATIONS SETTINGS ===== */}
+            {activeSection === 'notifications' && (
+              <motion.div
+                key="notifications"
+                className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <h2 className="text-2xl font-serif text-[#8b6f63] mb-2">Notification Preferences</h2>
+                <p className="text-sm text-[#8b6f63]/60 mb-6">Choose what notifications you want to receive</p>
+                <div className="space-y-3">
+                  {Object.entries(notifications).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between p-4 bg-[#fef5f1] rounded-lg border border-[#f5e6e0]/30">
+                      <div>
+                        <p className="text-[#8b6f63] font-medium capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </p>
+                        <p className="text-sm text-[#8b6f63]/60">{getNotificationDescription(key)}</p>
+                      </div>
+                      <button
+                        onClick={() => handleNotificationToggle(key as keyof typeof notifications)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          value ? 'bg-[#d4a5a5]' : 'bg-gray-300'
+                        }`}
+                        aria-label={`Toggle ${key}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            value ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  ))}
                 </div>
+              </motion.div>
+            )}
+
+            {/* ===== PREFERENCES ===== */}
+            {activeSection === 'preferences' && (
+              <motion.div
+                key="preferences"
+                className="bg-white rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 space-y-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Theme</label>
-                  <select
-                    value={preferences.theme}
-                    onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
-                  >
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                    <option value="auto">Auto</option>
-                  </select>
+                  <h2 className="text-2xl font-serif text-[#8b6f63] mb-2">Preferences</h2>
+                  <p className="text-sm text-[#8b6f63]/60">Customize your shopping experience</p>
                 </div>
-                <button
-                  onClick={() => toast('Preferences saved successfully!')}
-                  className="px-8 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors"
-                >
-                  Save Preferences
-                </button>
-              </div>
-            </motion.div>
-          )}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                      <Globe className="inline mr-2" size={14} />
+                      Language
+                    </label>
+                    <select
+                      value={preferences.language}
+                      onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                    >
+                      <option value="English">English</option>
+                      <option value="Spanish">Spanish</option>
+                      <option value="French">French</option>
+                      <option value="Chinese">Chinese</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                      Currency
+                    </label>
+                    <select
+                      value={preferences.currency}
+                      onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                    >
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="GBP">GBP (£)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">
+                      Theme
+                    </label>
+                    <select
+                      value={preferences.theme}
+                      onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                    >
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                      <option value="system">System</option>
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -1037,129 +1129,136 @@ export function SettingsPage() {
           >
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
             <motion.div
-              className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-serif text-[#8b6f63]">
                   {editingAddress ? 'Edit Address' : 'Add New Address'}
                 </h3>
-                <button onClick={() => setShowAddressModal(false)} className="text-[#8b6f63]/40 hover:text-[#8b6f63] transition-colors">
-                  <X size={20} />
+                <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-[#fef5f1] rounded-full transition-colors">
+                  <X size={20} className="text-[#8b6f63]" />
                 </button>
               </div>
               <form onSubmit={handleAddressSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Address Label</label>
-                  <select
-                    value={addressForm.label}
-                    onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
-                  >
-                    <option>Home</option>
-                    <option>Work</option>
-                    <option>Other</option>
-                  </select>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Label</label>
+                  <div className="flex gap-2">
+                    {['Home', 'Work', 'Other'].map((label) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => setAddressForm({ ...addressForm, label })}
+                        className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                          addressForm.label === label
+                            ? 'bg-[#d4a5a5] text-white'
+                            : 'bg-[#fef5f1] text-[#8b6f63] hover:bg-[#f5e6e0]'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      value={addressForm.name}
-                      onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
-                      required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Street Address</label>
-                    <input
-                      type="text"
-                      value={addressForm.street}
-                      onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
-                      required
-                      placeholder="123 Main St, Apt 4B"
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    value={addressForm.name}
+                    onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Street Address</label>
+                  <input
+                    type="text"
+                    value={addressForm.street}
+                    onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">City</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">City</label>
                     <input
                       type="text"
                       value={addressForm.city}
                       onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">State / Province</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">State / Province</label>
                     <input
                       type="text"
                       value={addressForm.state}
                       onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     />
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">ZIP / Postal Code</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">ZIP Code</label>
                     <input
                       type="text"
                       value={addressForm.zipCode}
                       onChange={(e) => setAddressForm({ ...addressForm, zipCode: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Country</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">Country</label>
                     <input
                       type="text"
                       value={addressForm.country}
                       onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Phone (optional)</label>
-                    <input
-                      type="tel"
-                      value={addressForm.phone}
-                      onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                      placeholder="+1 (555) 000-0000"
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setAddressForm({ ...addressForm, isDefault: !addressForm.isDefault })}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      addressForm.isDefault ? 'bg-[#d4a5a5]' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${addressForm.isDefault ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                  <span className="text-sm text-[#8b6f63]">Set as default address</span>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Phone (optional)</label>
+                  <input
+                    type="tel"
+                    value={addressForm.phone}
+                    onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
+                  />
                 </div>
-                <div className="flex gap-3 pt-2">
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="isDefault"
+                    checked={addressForm.isDefault}
+                    onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                    className="w-4 h-4 rounded border-[#f5e6e0] text-[#d4a5a5] focus:ring-[#d4a5a5]"
+                  />
+                  <label htmlFor="isDefault" className="text-sm text-[#8b6f63]">
+                    Set as default address
+                  </label>
+                </div>
+                <div className="flex gap-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowAddressModal(false)}
-                    className="flex-1 px-4 py-3 border border-[#f5e6e0] text-[#8b6f63] rounded-full hover:bg-[#fef5f1] transition-colors"
+                    className="flex-1 py-3 border border-[#f5e6e0] text-[#8b6f63] rounded-full hover:bg-[#fef5f1] transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={addressSaving}
-                    className="flex-1 px-4 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     {addressSaving ? <Loader2 size={18} className="animate-spin" /> : null}
                     {addressSaving ? 'Saving...' : editingAddress ? 'Update Address' : 'Add Address'}
@@ -1182,118 +1281,116 @@ export function SettingsPage() {
           >
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowPaymentModal(false)} />
             <motion.div
-              className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-md"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-serif text-[#8b6f63]">Add Payment Method</h3>
-                <button onClick={() => setShowPaymentModal(false)} className="text-[#8b6f63]/40 hover:text-[#8b6f63] transition-colors">
-                  <X size={20} />
+                <h3 className="text-xl font-serif text-[#8b6f63]">Add Card</h3>
+                <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-[#fef5f1] rounded-full transition-colors">
+                  <X size={20} className="text-[#8b6f63]" />
                 </button>
               </div>
               <form onSubmit={handlePaymentSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-[#8b6f63] mb-2">Card Type</label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {CARD_TYPES.map((card) => (
                       <button
                         key={card.value}
                         type="button"
                         onClick={() => setPaymentForm({ ...paymentForm, type: card.value })}
-                        className={`py-2.5 px-3 rounded-lg border text-xs font-medium transition-all ${
+                        className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                           paymentForm.type === card.value
-                            ? 'border-[#d4a5a5] bg-[#fef5f1] text-[#d4a5a5]'
-                            : 'border-[#f5e6e0] text-[#8b6f63]/60 hover:border-[#d4a5a5]/30'
+                            ? 'bg-[#fef5f1] border-2 border-[#d4a5a5] text-[#d4a5a5]'
+                            : 'bg-[#fef5f1] border border-[#f5e6e0] text-[#8b6f63] hover:border-[#d4a5a5]/50'
                         }`}
                       >
+                        <CreditCard size={16} />
                         {card.label}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Card Number</label>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Card Number</label>
                   <input
                     type="text"
                     value={paymentForm.cardNumber}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^\d\s]/g, '').slice(0, 19);
-                      setPaymentForm({ ...paymentForm, cardNumber: val });
-                    }}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, cardNumber: e.target.value.replace(/[^\d\s]/g, '').slice(0, 19) })}
                     placeholder="1234 5678 9012 3456"
                     required
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all font-mono"
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Cardholder Name</label>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-2">Cardholder Name</label>
                   <input
                     type="text"
                     value={paymentForm.holderName}
                     onChange={(e) => setPaymentForm({ ...paymentForm, holderName: e.target.value })}
                     required
-                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Expiry Month</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">Expiry Month</label>
                     <select
                       value={paymentForm.expiryMonth}
                       onChange={(e) => setPaymentForm({ ...paymentForm, expiryMonth: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     >
                       <option value="">MM</option>
                       {Array.from({ length: 12 }, (_, i) => (
-                        <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{String(i + 1).padStart(2, '0')}</option>
+                        <option key={i + 1} value={String(i + 1)}>{String(i + 1).padStart(2, '0')}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Expiry Year</label>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-2">Expiry Year</label>
                     <select
                       value={paymentForm.expiryYear}
                       onChange={(e) => setPaymentForm({ ...paymentForm, expiryYear: e.target.value })}
                       required
-                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] focus:border-transparent transition-all"
                     >
                       <option value="">YYYY</option>
-                      {Array.from({ length: 12 }, (_, i) => 2024 + i).map((year) => (
-                        <option key={year} value={String(year)}>{year}</option>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <option key={2024 + i} value={String(2024 + i)}>{2024 + i}</option>
                       ))}
                     </select>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentForm({ ...paymentForm, isPreferred: !paymentForm.isPreferred })}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      paymentForm.isPreferred ? 'bg-[#d4a5a5]' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${paymentForm.isPreferred ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                  <span className="text-sm text-[#8b6f63]">Set as preferred payment method</span>
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="isPreferredPayment"
+                    checked={paymentForm.isPreferred}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, isPreferred: e.target.checked })}
+                    className="w-4 h-4 rounded border-[#f5e6e0] text-[#d4a5a5] focus:ring-[#d4a5a5]"
+                  />
+                  <label htmlFor="isPreferredPayment" className="text-sm text-[#8b6f63]">
+                    Set as preferred payment method
+                  </label>
                 </div>
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowPaymentModal(false)}
-                    className="flex-1 px-4 py-3 border border-[#f5e6e0] text-[#8b6f63] rounded-full hover:bg-[#fef5f1] transition-colors"
+                    className="flex-1 py-3 border border-[#f5e6e0] text-[#8b6f63] rounded-full hover:bg-[#fef5f1] transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={paymentSaving}
-                    className="flex-1 px-4 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     {paymentSaving ? <Loader2 size={18} className="animate-spin" /> : null}
-                    {paymentSaving ? 'Adding...' : 'Add Method'}
+                    {paymentSaving ? 'Adding...' : 'Add Card'}
                   </button>
                 </div>
               </form>

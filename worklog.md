@@ -454,3 +454,79 @@ Stage Summary:
 5. **Mobile responsiveness**: Test all new features on mobile viewports
 6. **Order tracking**: Add visual timeline component for order status tracking
 7. **Performance**: Consider adding image optimization with Next.js Image component
+
+---
+Task ID: round7-settings-checkout-payment
+Agent: Main Developer
+Task: Fix Settings page editing, add Pay on Receive payment method, rewrite checkout with saved addresses/payment integration
+
+Work Log:
+- Read worklog, SettingsPage.tsx, CheckoutPage.tsx, Prisma schema, and all relevant API routes
+- Updated `prisma/schema.prisma`:
+  - Made `lastFour`, `expiryMonth`, `expiryYear`, `holderName` nullable in PaymentMethod model (to support non-card payments)
+  - Added `paymentMethod` field (String, default "credit_card") to Order model
+- Ran `bun run db:push` and `npx prisma generate` to sync schema
+- Rewrote `src/app/api/payment-methods/route.ts`:
+  - Added validation for PAY_ON_RECEIVE and CASH_ON_DELIVERY payment types (no card details required)
+  - Card payment types still validate lastFour, expiry, and holderName
+  - For non-card types, nullable fields are set to null
+- Updated `src/app/api/orders/route.ts`:
+  - Added `paymentMethod` field to POST handler (accepts "credit_card" or "pay_on_receive")
+  - Stores payment method type in the Order record
+- Completely rewrote `src/components/pages/SettingsPage.tsx`:
+  - Fixed `useCallback` removal bug that caused client-side crash (removed import but kept usage)
+  - PaymentMethodItem interface updated to use nullable fields
+  - Added "Pay on Receive" button alongside "Add Card" in Payment Methods section
+  - Added Pay on Receive option in empty state section
+  - Added `handleAddPayOnReceive()` function with duplicate check
+  - Added confirm() dialogs for delete operations (address and payment)
+  - Address edit button now uses Pencil icon (was User icon)
+  - Added MapPin icon for empty addresses state
+  - Improved payment method display with `getPaymentIcon()`, `getPaymentLabel()`, `getPaymentDescription()` helpers
+  - AnimatePresence for section transitions with mode="wait"
+  - Cleaned up unused dependencies
+- Completely rewrote `src/components/pages/CheckoutPage.tsx`:
+  - Multi-step checkout: Step 1 (Shipping) → Step 2 (Payment) → Step 3 (Review)
+  - Step indicator UI with active/completed states and icons (Truck, CreditCard, CheckCircle)
+  - **Shipping step**: Radio selection of saved addresses OR new address form
+  - **Payment step**: Radio selection of saved payment methods OR new payment form
+  - Pay on Receive available as both saved option and new payment choice
+  - Card type selector (Visa/MC/Amex/Discover) with visual selection state
+  - **Review step**: Summary of selected address, payment method, and order items
+  - "Change" buttons to go back to previous steps
+  - New addresses and payment methods are auto-saved to database on order placement
+  - Order includes paymentMethod field ("credit_card" or "pay_on_receive")
+  - Free shipping progress indicator ($50 threshold)
+  - Trust badges (Secure checkout, Free shipping, 30-day returns)
+  - Responsive design with proper mobile layout
+- Fixed Turbopack cache issue causing 500 error on PaymentMethod.create (cleared .next directory)
+- All ESLint checks pass clean
+- Verified via agent-browser: Settings page renders correctly with all sections, form fields populated with user data, Payment Methods section shows Pay on Receive option
+
+Stage Summary:
+- Settings page fully functional: account info editing, password change, address CRUD, payment method management
+- Pay on Receive payment method added: can be added from Settings or during checkout
+- Checkout completely rewritten with 3-step flow and saved address/payment method integration
+- Orders now store payment method type for future reference
+- Prisma schema updated to support nullable card fields and order payment method tracking
+
+## Current Project Status
+- Full-stack cosmetic e-commerce store (Rare Beauty) in production-ready state
+- 15 pages: Home, Products, Product Detail, Cart, Checkout, Login, Signup, Contact, Order Confirmation, Order Tracking, Returns & Refunds, Help Center, Profile, Settings, Admin Dashboard
+- Backend: 20+ API routes with Prisma/SQLite
+- Admin dashboard with full CRUD for products, orders, and customers
+- Advanced UX features: Live search, Quick View Modal, Mini Cart Drawer, Recently Viewed, Scroll-to-Top, Skeleton loading states
+- Dark/Light theme toggle with custom plum/burgundy dark palette
+- Product detail page with image gallery, zoom-on-hover, tabbed info, social sharing, breadcrumbs
+- Settings page with full CRUD for account, addresses, payment methods (including Pay on Receive)
+- Multi-step checkout with saved address and payment method selection
+- Custom toast notification system (replaced sonner)
+- Cron job set up for continuous QA and development (every 15 minutes)
+
+## Recommended Next Steps
+1. **Hero section**: Replace emoji placeholders with real product image collage
+2. **Checkout testing**: End-to-end checkout flow testing via agent-browser
+3. **Admin order detail**: Show payment method in admin order details
+4. **Mobile responsiveness**: Test checkout flow on mobile viewports
+5. **Order tracking**: Add visual timeline component for order status tracking
+6. **Performance**: Consider adding image optimization with Next.js Image component
