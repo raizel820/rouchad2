@@ -120,10 +120,13 @@ export function CartPage() {
                         className="text-[#8b6f63] dark:text-[#e8ddd5] hover:text-[#d4a5a5] transition-colors font-medium text-left"
                       >
                         <div className="flex items-center gap-2">
-                          {item.selectedColor && item.selectedColor !== 'default' && (
-                            <div className="w-5 h-5 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
-                          )}
                           <span className="text-[#8b6f63] dark:text-[#e8ddd5] font-medium">{item.name}</span>
+                          {item.selectedColor && item.selectedColor !== 'default' && (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#fef5f1] dark:bg-[#1a1215] rounded-full">
+                              <span className="w-3.5 h-3.5 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
+                              <span className="text-xs text-[#8b6f63]/60 dark:text-[#e8ddd5]/50 font-mono">{item.selectedColor}</span>
+                            </span>
+                          )}
                         </div>
                       </button>
                       <p className="text-sm text-[#8b6f63]/70 dark:text-[#e8ddd5]/60">{item.category}</p>

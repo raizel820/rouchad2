@@ -788,3 +788,35 @@ Stage Summary:
 3. Admin product modal: ensure color selector works in admin
 4. Product page: show selected color in Quick View modal
 5. Cart: show different color variants grouped under same product
+
+---
+Task ID: color-display-everywhere
+Agent: Main Developer
+Task: Show selected product color in all order-related views (cart, checkout, order confirmation, order tracking, admin order details)
+
+Work Log:
+- Audited entire codebase for color display consistency across 8 pages/components
+- Confirmed existing infrastructure already supports color: Prisma OrderItem.color field, Zustand CartItem.selectedColor, order API saves color, product API returns colors as JSON
+- Updated 6 files to display color with color dot + hex code label:
+  1. **OrderConfirmationPage.tsx**: Added `color` to OrderItem interface, displays color dot + product name in "Items Ordered" section
+  2. **OrderTrackingPage.tsx**: Added `color` to OrderItem interface, displays color dot + hex code next to product name and in the quantity/price line
+  3. **AdminDashboard.tsx**: Added `color` to OrderItem interface, admin order detail modal now shows color dot + hex code next to product name and in the quantity line
+  4. **CartPage.tsx**: Enhanced color display from dot-only to pill badge (dot + hex text in rounded pill) next to product name
+  5. **CheckoutPage.tsx**: Enhanced color display in both review step items list and order summary sidebar (dot + hex text)
+  6. **MiniCartDrawer.tsx**: Enhanced color display from dot-only to pill badge (dot + hex text in rounded pill)
+- All existing color displays already working: ProductDetailPage color selector, ProfilePage order history, QuickViewModal
+- All ESLint checks pass clean, dev server compiles with zero errors
+
+Stage Summary:
+- Product selected color is now visible throughout the ENTIRE order lifecycle:
+  - Product page: Color selector with dot buttons and color name
+  - Mini Cart Drawer: Pill badge with dot + hex code
+  - Cart Page: Pill badge with dot + hex code
+  - Checkout (Review step): Pill badge with dot + hex code
+  - Checkout (Order Summary sidebar): Dot + hex code
+  - Order Confirmation: Color dot next to product name
+  - Order Tracking: Color dot + hex code next to product name
+  - Profile (Order History): Color dot next to product name (already working)
+  - Admin (Order Details): Color dot + hex code next to product name
+- Color data persists from selection through to database (OrderItem.color) and back to display
+- Consistent pill badge design: rounded-full container with color dot + monospace hex text

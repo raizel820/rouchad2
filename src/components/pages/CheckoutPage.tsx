@@ -736,7 +736,10 @@ export function CheckoutPage() {
                             <div className="flex items-center gap-2">
                               <p className="text-sm text-[#8b6f63] font-medium truncate">{item.name}</p>
                               {item.selectedColor && item.selectedColor !== 'default' && (
-                                <div className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} title={item.selectedColor} />
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-[#fef5f1] rounded-full flex-shrink-0">
+                                  <span className="w-3 h-3 rounded-full border border-gray-200" style={{ backgroundColor: item.selectedColor }} />
+                                  <span className="text-[10px] text-[#8b6f63]/60 font-mono">{item.selectedColor}</span>
+                                </span>
                               )}
                             </div>
                             <p className="text-xs text-[#8b6f63]/60">Qty: {item.quantity}</p>
@@ -784,7 +787,10 @@ export function CheckoutPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-[#8b6f63] truncate mr-2">{item.name} x {item.quantity}</span>
                       {item.selectedColor && item.selectedColor !== 'default' && (
-                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
+                        <span className="inline-flex items-center gap-1 flex-shrink-0">
+                          <span className="w-3 h-3 rounded-full border border-gray-200" style={{ backgroundColor: item.selectedColor }} />
+                          <span className="text-[10px] text-[#8b6f63]/60 font-mono">{item.selectedColor}</span>
+                        </span>
                       )}
                     </div>
                     <span className="text-[#8b6f63] whitespace-nowrap">${(item.price * item.quantity).toFixed(2)}</span>

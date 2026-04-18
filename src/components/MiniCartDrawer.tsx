@@ -143,7 +143,10 @@ export function MiniCartDrawer({ isOpen, onClose }: MiniCartDrawerProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           {item.selectedColor && item.selectedColor !== 'default' && (
-                            <div className="w-4 h-4 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-white dark:bg-[#2d1f24] rounded-full">
+                              <span className="w-3 h-3 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0" style={{ backgroundColor: item.selectedColor }} />
+                              <span className="text-[10px] text-[#8b6f63]/60 dark:text-[#a89898] font-mono">{item.selectedColor}</span>
+                            </span>
                           )}
                           <h3 className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] truncate">
                             {item.name}
