@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ShoppingBag, User, Menu, X, Heart, LogOut, Settings, Package, ChevronRight, Sun, Moon, Shield } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Search, ShoppingBag, User, Menu, X, Heart, LogOut, Settings, Package, ChevronRight, Sun, Moon, Shield, Clock, TrendingUp, ArrowRight, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore, type Product } from '@/store/store';
 import { toast } from '@/lib/toast';
@@ -14,6 +14,91 @@ interface SearchResult {
   price: number;
   category: string;
   image: string;
+  rating: number;
+  reviewCount: number;
+  onSale?: boolean;
+  discountedPrice?: number;
+  savings?: number;
+  discountPercentage?: number;
+}
+
+interface TrendingProduct {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  rating: number;
+}
+
+const RECENT_SEARCHES_KEY = 'rarebeauty_recent_searches';
+const MAX_RECENT_SEARCHES = 5;
+
+const CATEGORY_CHIPS = [
+  { name: 'Makeup', color: 'bg-rose-400' },
+  { name: 'Skincare', color: 'bg-emerald-400' },
+  { name: 'Haircare', color: 'bg-amber-400' },
+  { name: 'Perfume', color: 'bg-violet-400' },
+];
+
+function loadRecentSearches(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearchToStorage(query: string) {
+  if (!query.trim()) return;
+  try {
+    const existing = loadRecentSearches();
+    const filtered = existing.filter((s) => s.toLowerCase() !== query.toLowerCase());
+    const updated = [query, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clearRecentSearchesStorage() {
+  try {
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <span key={i} className="font-bold text-[#d4a5a5] dark:text-[#d4a5a5]">{part}</span>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function RatingStars({ rating }: { rating: number }) {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          size={10}
+          className={star <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-[#d4c5c0] dark:text-[#3d2f34]'}
+        />
+      ))}
+    </span>
+  );
 }
 
 export function Header() {
@@ -35,19 +120,61 @@ export function Header() {
   const [prevCartCount, setPrevCartCount] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [trendingProducts, setTrendingProducts] = useState<TrendingProduct[]>([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const { theme, setTheme } = useTheme();
 
   const searchRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
 
   const cartCount = getCartCount();
   const wishlistCount = wishlistItems.length;
   const categories = ['All', 'Makeup', 'Skincare', 'Haircare', 'Perfume'];
 
+  // Compute total number of navigable items for keyboard nav
+  const totalNavItems = useMemo(() => {
+    if (!isSearchFocused && !showSearchDropdown) return 0;
+    if (!searchQuery.trim()) {
+      // Recent searches (if any) or trending products
+      if (recentSearches.length > 0) return recentSearches.length;
+      return trendingProducts.length;
+    }
+    // Live search results
+    return searchResults.length;
+  }, [isSearchFocused, showSearchDropdown, searchQuery, recentSearches.length, trendingProducts.length, searchResults.length]);
+
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
+    setRecentSearches(loadRecentSearches());
+  }, []);
+
+  // Fetch trending products on mount
+  useEffect(() => {
+    async function fetchTrending() {
+      try {
+        const res = await fetch('/api/products?limit=50');
+        const data: Product[] = await res.json();
+        const sorted = [...data].sort((a, b) => b.rating - a.rating);
+        setTrendingProducts(sorted.slice(0, 3).map((p) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          image: p.image,
+          rating: p.rating,
+        })));
+      } catch {
+        // ignore fetch errors
+      }
+    }
+    fetchTrending();
   }, []);
 
   // Scroll detection for header effects
@@ -80,11 +207,26 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close search dropdown when clicking outside
+  // Close search dropdown when clicking outside (desktop)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowSearchDropdown(false);
+        setIsSearchFocused(false);
+        setHighlightedIndex(-1);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Close search dropdown when clicking outside (mobile)
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
+        setShowSearchDropdown(false);
+        setIsSearchFocused(false);
+        setHighlightedIndex(-1);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -92,11 +234,10 @@ export function Header() {
   }, []);
 
   // Live search with debounce
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const handleSearchChange = useCallback((value: string) => {
     setSearchQueryLocal(value);
     setShowSearchDropdown(true);
+    setHighlightedIndex(-1);
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -113,12 +254,18 @@ export function Header() {
       try {
         const res = await fetch(`/api/products?search=${encodeURIComponent(value.trim())}`);
         const data: Product[] = await res.json();
-        setSearchResults(data.slice(0, 5).map((p) => ({
+        setSearchResults(data.slice(0, 8).map((p) => ({
           id: p.id,
           name: p.name,
           price: p.price,
           category: p.category,
           image: p.image,
+          rating: p.rating,
+          reviewCount: p.reviewCount,
+          onSale: p.onSale,
+          discountedPrice: p.discountedPrice,
+          savings: p.savings,
+          discountPercentage: p.effectiveDiscount,
         })));
       } catch {
         setSearchResults([]);
@@ -128,23 +275,59 @@ export function Header() {
     }, 300);
   }, []);
 
-  const handleSearchSubmit = (query: string) => {
+  const handleSearchSubmit = useCallback((query: string) => {
     if (query.trim()) {
+      saveRecentSearchToStorage(query.trim());
+      setRecentSearches(loadRecentSearches());
       setSearchQuery(query.trim());
       navigate('products');
       setShowSearchDropdown(false);
+      setIsSearchFocused(false);
       setIsSearchOpen(false);
       setIsMenuOpen(false);
+      setHighlightedIndex(-1);
     }
-  };
+  }, [navigate]);
+
+  const handleRecentSearchClick = useCallback((query: string) => {
+    setSearchQueryLocal(query);
+    handleSearchSubmit(query);
+  }, [handleSearchSubmit]);
+
+  const clearRecentSearches = useCallback(() => {
+    clearRecentSearchesStorage();
+    setRecentSearches([]);
+  }, []);
 
   const handleSearchResultClick = (result: SearchResult) => {
     setProductId(result.id);
     navigate('product-detail');
     setShowSearchDropdown(false);
+    setIsSearchFocused(false);
     setIsSearchOpen(false);
     setIsMenuOpen(false);
     setSearchQueryLocal('');
+    setHighlightedIndex(-1);
+  };
+
+  const handleTrendingClick = (product: TrendingProduct) => {
+    setProductId(product.id);
+    navigate('product-detail');
+    setShowSearchDropdown(false);
+    setIsSearchFocused(false);
+    setIsSearchOpen(false);
+    setIsMenuOpen(false);
+    setSearchQueryLocal('');
+    setHighlightedIndex(-1);
+  };
+
+  const handleCategoryChipClick = (cat: string) => {
+    setSelectedCategory(cat);
+    navigate('products');
+    setIsMenuOpen(false);
+    setShowSearchDropdown(false);
+    setIsSearchFocused(false);
+    setHighlightedIndex(-1);
   };
 
   const handleCategoryClick = (cat: string) => {
@@ -173,6 +356,308 @@ export function Header() {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  const handleSearchFocus = useCallback(() => {
+    setIsSearchFocused(true);
+    setShowSearchDropdown(true);
+    setHighlightedIndex(-1);
+  }, []);
+
+  const handleSearchBlur = useCallback(() => {
+    // Delay to allow click events on dropdown items
+    setTimeout(() => {
+      setShowSearchDropdown(false);
+      setIsSearchFocused(false);
+      setHighlightedIndex(-1);
+    }, 200);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, isMobile: boolean) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && highlightedIndex < totalNavItems) {
+        if (!searchQuery.trim()) {
+          // Navigating recent searches or trending
+          if (recentSearches.length > 0 && highlightedIndex < recentSearches.length) {
+            handleRecentSearchClick(recentSearches[highlightedIndex]);
+            return;
+          }
+          if (trendingProducts.length > 0 && highlightedIndex < trendingProducts.length) {
+            handleTrendingClick(trendingProducts[highlightedIndex]);
+            return;
+          }
+        } else {
+          // Navigating search results
+          if (highlightedIndex < searchResults.length) {
+            handleSearchResultClick(searchResults[highlightedIndex]);
+            return;
+          }
+        }
+      }
+      // If nothing highlighted, submit the search
+      handleSearchSubmit(searchQuery);
+      if (!isMobile) {
+        inputRef.current?.blur();
+      } else {
+        mobileInputRef.current?.blur();
+      }
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setShowSearchDropdown(false);
+      setIsSearchFocused(false);
+      setHighlightedIndex(-1);
+      if (!isMobile) {
+        inputRef.current?.blur();
+      } else {
+        mobileInputRef.current?.blur();
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev + 1 >= totalNavItems ? 0 : prev + 1));
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev <= 0 ? totalNavItems - 1 : prev - 1));
+    }
+  }, [highlightedIndex, totalNavItems, searchQuery, recentSearches, trendingProducts, searchResults, handleSearchSubmit, handleRecentSearchClick, handleSearchResultClick, handleTrendingClick]);
+
+  // Render the search dropdown content (shared between desktop and mobile)
+  const renderSearchDropdown = (isMobile: boolean) => {
+    // When focused but no query typed
+    if (!searchQuery.trim() && (isSearchFocused || showSearchDropdown)) {
+      return (
+        <div className="p-2">
+          {/* Recent Searches */}
+          {recentSearches.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-xs font-semibold text-[#8b6f63]/70 dark:text-[#a89898] uppercase tracking-wider">Recent Searches</span>
+                <button
+                  onClick={clearRecentSearches}
+                  className="text-xs text-[#d4a5a5] hover:text-[#8b6f63] dark:hover:text-[#e8ddd5] transition-colors flex items-center gap-1"
+                >
+                  <X size={12} />
+                  Clear Recent
+                </button>
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {recentSearches.map((term, idx) => (
+                  <button
+                    key={term}
+                    onMouseDown={(e) => { e.preventDefault(); handleRecentSearchClick(term); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
+                      highlightedIndex === idx
+                        ? 'bg-[#fef5f1] dark:bg-[#3d2f34]'
+                        : 'hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34]'
+                    }`}
+                  >
+                    <Clock size={14} className="text-[#8b6f63]/40 dark:text-[#a89898]/50 flex-shrink-0" />
+                    <span className="text-sm text-[#8b6f63] dark:text-[#e8ddd5]">{term}</span>
+                    <ArrowRight size={12} className="text-[#8b6f63]/30 dark:text-[#a89898]/30 ml-auto flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : trendingProducts.length > 0 ? (
+            <div>
+              <div className="flex items-center gap-2 px-3 py-2">
+                <TrendingUp size={12} className="text-[#d4a5a5]" />
+                <span className="text-xs font-semibold text-[#8b6f63]/70 dark:text-[#a89898] uppercase tracking-wider">Trending Products</span>
+              </div>
+              <div className="max-h-56 overflow-y-auto">
+                {trendingProducts.map((product, idx) => (
+                  <button
+                    key={product.id}
+                    onMouseDown={(e) => { e.preventDefault(); handleTrendingClick(product); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
+                      highlightedIndex === idx
+                        ? 'bg-[#fef5f1] dark:bg-[#3d2f34]'
+                        : 'hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34]'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] overflow-hidden flex-shrink-0 relative">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute top-0 right-0 bg-[#d4a5a5] rounded-bl-lg p-0.5">
+                        <TrendingUp size={8} className="text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] truncate">{product.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <RatingStars rating={product.rating} />
+                        <span className="text-[10px] text-[#8b6f63]/50 dark:text-[#a89898]/60">{product.rating}</span>
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-[#d4a5a5]">${product.price.toFixed(2)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Category Quick Filters */}
+          <div className="mt-2 pt-2 border-t border-[#f5e6e0] dark:border-[#3d2f34]">
+            <span className="text-xs font-semibold text-[#8b6f63]/70 dark:text-[#a89898] uppercase tracking-wider px-3 pb-2 block">Categories</span>
+            <div className="flex flex-wrap gap-2 px-3 pb-1">
+              {CATEGORY_CHIPS.map((cat) => (
+                <button
+                  key={cat.name}
+                  onMouseDown={(e) => { e.preventDefault(); handleCategoryChipClick(cat.name); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fef5f1] dark:bg-[#1a1215] hover:bg-[#f5e6e0] dark:hover:bg-[#3d2f34] transition-colors text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5]"
+                >
+                  <span className={`w-2 h-2 rounded-full ${cat.color}`} />
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // When typing - show search results
+    if (searchQuery.trim()) {
+      return (
+        <div className="p-2">
+          {isSearching ? (
+            <div className="p-4 text-center text-sm text-[#8b6f63]/60 dark:text-[#a89898]">
+              <div className="inline-block w-4 h-4 border-2 border-[#d4a5a5] border-t-transparent rounded-full animate-spin mr-2" />
+              Searching...
+            </div>
+          ) : searchResults.length > 0 ? (
+            <>
+              <div className="max-h-80 overflow-y-auto">
+                {searchResults.map((result, idx) => (
+                  <button
+                    key={result.id}
+                    onMouseDown={(e) => { e.preventDefault(); handleSearchResultClick(result); }}
+                    onMouseEnter={() => setHighlightedIndex(idx)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
+                      highlightedIndex === idx
+                        ? 'bg-[#fef5f1] dark:bg-[#3d2f34]'
+                        : 'hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34]'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] overflow-hidden flex-shrink-0 relative">
+                      <img
+                        src={result.image}
+                        alt={result.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      {result.onSale && result.discountPercentage && (
+                        <div className="absolute top-0 left-0 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded-tl-lg rounded-br-lg">
+                          -{Math.round(result.discountPercentage)}%
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] truncate">
+                          <HighlightedText text={result.name} query={searchQuery} />
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <RatingStars rating={result.rating} />
+                        <span className="text-[10px] text-[#8b6f63]/50 dark:text-[#a89898]/60">{result.rating}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end flex-shrink-0">
+                      {result.onSale && result.discountedPrice ? (
+                        <>
+                          <span className="text-sm font-semibold text-[#d4a5a5]">${result.discountedPrice.toFixed(2)}</span>
+                          <span className="text-[10px] text-[#8b6f63]/40 dark:text-[#a89898]/40 line-through">${result.price.toFixed(2)}</span>
+                        </>
+                      ) : (
+                        <span className="text-sm font-semibold text-[#d4a5a5]">${result.price.toFixed(2)}</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* View All Results Button */}
+              {searchResults.length >= 5 && (
+                <div className="border-t border-[#f5e6e0] dark:border-[#3d2f34] mt-1 pt-1">
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); handleSearchSubmit(searchQuery); }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-[#d4a5a5] hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] rounded-lg transition-colors"
+                  >
+                    View All Results
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Category Quick Filters below results */}
+              <div className="border-t border-[#f5e6e0] dark:border-[#3d2f34] mt-1 pt-2">
+                <span className="text-xs font-semibold text-[#8b6f63]/70 dark:text-[#a89898] uppercase tracking-wider px-3 pb-2 block">Categories</span>
+                <div className="flex flex-wrap gap-2 px-3 pb-1">
+                  {CATEGORY_CHIPS.map((cat) => (
+                    <button
+                      key={cat.name}
+                      onMouseDown={(e) => { e.preventDefault(); handleCategoryChipClick(cat.name); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fef5f1] dark:bg-[#1a1215] hover:bg-[#f5e6e0] dark:hover:bg-[#3d2f34] transition-colors text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5]"
+                    >
+                      <span className={`w-2 h-2 rounded-full ${cat.color}`} />
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* No results */}
+              <div className="p-6 text-center">
+                <Search size={24} className="text-[#8b6f63]/30 dark:text-[#a89898]/30 mx-auto mb-2" />
+                <p className="text-sm text-[#8b6f63]/60 dark:text-[#a89898]">
+                  No products found for &ldquo;{searchQuery}&rdquo;
+                </p>
+                <p className="text-xs text-[#8b6f63]/40 dark:text-[#a89898]/50 mt-1">Try a different search or browse categories</p>
+              </div>
+
+              {/* Category suggestions */}
+              <div className="border-t border-[#f5e6e0] dark:border-[#3d2f34] pt-2 px-3 pb-2">
+                <span className="text-xs font-semibold text-[#8b6f63]/70 dark:text-[#a89898] uppercase tracking-wider pb-2 block">Browse Categories</span>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORY_CHIPS.map((cat) => (
+                    <button
+                      key={cat.name}
+                      onMouseDown={(e) => { e.preventDefault(); handleCategoryChipClick(cat.name); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fef5f1] dark:bg-[#1a1215] hover:bg-[#f5e6e0] dark:hover:bg-[#3d2f34] transition-colors text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5]"
+                    >
+                      <span className={`w-2 h-2 rounded-full ${cat.color}`} />
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <>
       <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 dark:bg-[#1a1215]/90 backdrop-blur-md shadow-sm' : 'bg-white/95 dark:bg-[#1a1215]/95 backdrop-blur-sm'} border-b border-[#f5e6e0] dark:border-[#2d1f24] relative`}>
@@ -197,74 +682,35 @@ export function Header() {
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b6f63]/50 dark:text-[#a89898]/60" size={18} />
                 <input
+                  ref={inputRef}
                   type="text"
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  onFocus={() => {
-                    setIsSearchOpen(true);
-                    if (searchQuery.trim()) setShowSearchDropdown(true);
-                  }}
-                  onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSearchSubmit(searchQuery);
-                      (e.target as HTMLInputElement).blur();
-                    }
-                    if (e.key === 'Escape') {
-                      setShowSearchDropdown(false);
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
+                  onKeyDown={(e) => handleKeyDown(e, false)}
                   className="w-full pl-10 pr-4 py-2 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-sm text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]"
+                  role="combobox"
+                  aria-expanded={showSearchDropdown}
+                  aria-controls="search-dropdown-list"
+                  aria-activedescendant={highlightedIndex >= 0 ? `search-option-${highlightedIndex}` : undefined}
+                  aria-autocomplete="list"
                 />
 
-                {/* Live Search Results Dropdown */}
+                {/* Search Dropdown */}
                 <AnimatePresence>
-                  {showSearchDropdown && searchQuery.trim() && (
+                  {showSearchDropdown && isSearchFocused && (
                     <motion.div
+                      id="search-dropdown-list"
                       initial={{ opacity: 0, y: -4, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -4, scale: 0.98 }}
                       transition={{ duration: 0.15 }}
                       className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#2d1f24] rounded-xl shadow-lg border border-[#f5e6e0] dark:border-[#3d2f34] overflow-hidden z-50"
+                      role="listbox"
                     >
-                      {isSearching ? (
-                        <div className="p-4 text-center text-sm text-[#8b6f63]/60 dark:text-[#a89898]">
-                          <div className="inline-block w-4 h-4 border-2 border-[#d4a5a5] border-t-transparent rounded-full animate-spin mr-2" />
-                          Searching...
-                        </div>
-                      ) : searchResults.length > 0 ? (
-                        <div className="max-h-80 overflow-y-auto">
-                          {searchResults.map((result) => (
-                            <button
-                              key={result.id}
-                              onMouseDown={() => handleSearchResultClick(result)}
-                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors text-left"
-                            >
-                              <div className="w-10 h-10 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] overflow-hidden flex-shrink-0">
-                                <img
-                                  src={result.image}
-                                  alt={result.name}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] truncate">{result.name}</p>
-                                <p className="text-xs text-[#8b6f63]/60 dark:text-[#a89898]">{result.category}</p>
-                              </div>
-                              <span className="text-sm font-semibold text-[#d4a5a5]">${result.price.toFixed(2)}</span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="p-4 text-center text-sm text-[#8b6f63]/60 dark:text-[#a89898]">
-                          No products found for &ldquo;{searchQuery}&rdquo;
-                        </div>
-                      )}
+                      {renderSearchDropdown(false)}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -539,34 +985,24 @@ export function Header() {
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className="md:hidden overflow-hidden"
               >
-                <div className="pb-4" ref={searchRef}>
+                <div className="pb-4" ref={mobileSearchRef}>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b6f63]/50 dark:text-[#a89898]/60" size={18} />
                     <input
+                      ref={mobileInputRef}
                       type="text"
                       placeholder="Search products..."
                       value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
-                      onFocus={() => {
-                        if (searchQuery.trim()) setShowSearchDropdown(true);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSearchSubmit(searchQuery);
-                          (e.target as HTMLInputElement).blur();
-                        }
-                        if (e.key === 'Escape') {
-                          setShowSearchDropdown(false);
-                          setIsSearchOpen(false);
-                        }
-                      }}
+                      onFocus={handleSearchFocus}
+                      onKeyDown={(e) => handleKeyDown(e, true)}
                       className="w-full pl-10 pr-4 py-2 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-sm text-[#8b6f63] dark:text-[#e8ddd5] placeholder:text-[#8b6f63]/40 dark:placeholder:text-[#a89898]/50 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]"
                       autoFocus
                     />
 
-                    {/* Mobile Search Results */}
+                    {/* Mobile Search Dropdown */}
                     <AnimatePresence>
-                      {showSearchDropdown && searchQuery.trim() && (
+                      {showSearchDropdown && isSearchFocused && (
                         <motion.div
                           initial={{ opacity: 0, y: -4, scale: 0.98 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -574,42 +1010,7 @@ export function Header() {
                           transition={{ duration: 0.15 }}
                           className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#2d1f24] rounded-xl shadow-lg border border-[#f5e6e0] dark:border-[#3d2f34] overflow-hidden z-50"
                         >
-                          {isSearching ? (
-                            <div className="p-4 text-center text-sm text-[#8b6f63]/60 dark:text-[#a89898]">
-                              <div className="inline-block w-4 h-4 border-2 border-[#d4a5a5] border-t-transparent rounded-full animate-spin mr-2" />
-                              Searching...
-                            </div>
-                          ) : searchResults.length > 0 ? (
-                            <div className="max-h-80 overflow-y-auto">
-                              {searchResults.map((result) => (
-                                <button
-                                  key={result.id}
-                                  onClick={() => handleSearchResultClick(result)}
-                                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors text-left"
-                                >
-                                  <div className="w-10 h-10 rounded-lg bg-[#fef5f1] dark:bg-[#1a1215] overflow-hidden flex-shrink-0">
-                                    <img
-                                      src={result.image}
-                                      alt={result.name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                      }}
-                                    />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5] truncate">{result.name}</p>
-                                    <p className="text-xs text-[#8b6f63]/60 dark:text-[#a89898]">{result.category}</p>
-                                  </div>
-                                  <span className="text-sm font-semibold text-[#d4a5a5]">${result.price.toFixed(2)}</span>
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="p-4 text-center text-sm text-[#8b6f63]/60 dark:text-[#a89898]">
-                              No products found
-                            </div>
-                          )}
+                          {renderSearchDropdown(true)}
                         </motion.div>
                       )}
                     </AnimatePresence>

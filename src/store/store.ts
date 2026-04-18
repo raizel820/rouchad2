@@ -16,7 +16,8 @@ export type Page =
   | 'returns-refunds'
   | 'help-center'
   | 'contact'
-  | 'wishlist';
+  | 'wishlist'
+  | 'compare';
 
 export type ProfileTab = 'orders' | 'wishlist' | 'settings';
 export type ToastType = 'success' | 'error' | 'info';
@@ -118,6 +119,9 @@ interface StoreState {
   // Shop Settings
   shopSettings: ShopSettings;
 
+  // Compare
+  compareProductIds: string[];
+
   // Actions
   navigate: (page: Page) => void;
   navigateToProfile: (tab?: ProfileTab) => void;
@@ -157,6 +161,11 @@ interface StoreState {
   removePromoCode: () => void;
 
   setShopSettings: (settings: ShopSettings) => void;
+
+  addToCompare: (productId: string) => boolean;
+  removeFromCompare: (productId: string) => void;
+  clearCompare: () => void;
+  isInCompare: (productId: string) => boolean;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -199,6 +208,9 @@ export const useStore = create<StoreState>((set, get) => ({
     logoUrl: null,
     faviconUrl: null,
   },
+
+  // Compare defaults
+  compareProductIds: [],
 
   // Navigation actions
   navigate: (page: Page) => {
@@ -313,4 +325,22 @@ export const useStore = create<StoreState>((set, get) => ({
 
   // Shop Settings actions
   setShopSettings: (settings: ShopSettings) => set({ shopSettings: settings }),
+
+  // Compare actions
+  addToCompare: (productId: string) => {
+    const state = get();
+    if (state.compareProductIds.includes(productId)) return false;
+    if (state.compareProductIds.length >= 4) return false;
+    set({ compareProductIds: [...state.compareProductIds, productId] });
+    return true;
+  },
+  removeFromCompare: (productId: string) => {
+    set((state) => ({
+      compareProductIds: state.compareProductIds.filter((id) => id !== productId),
+    }));
+  },
+  clearCompare: () => set({ compareProductIds: [] }),
+  isInCompare: (productId: string) => {
+    return get().compareProductIds.includes(productId);
+  },
 }));

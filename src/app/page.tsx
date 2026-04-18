@@ -20,6 +20,7 @@ import { ProfilePage } from '@/components/pages/ProfilePage';
 import { SettingsPage } from '@/components/pages/SettingsPage';
 import { AdminDashboard } from '@/components/pages/AdminDashboard';
 import { WishlistPage } from '@/components/pages/WishlistPage';
+import { ComparePage } from '@/components/pages/ComparePage';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { QuickViewModal } from '@/components/QuickViewModal';
@@ -117,6 +118,8 @@ function PageRenderer() {
         return <SettingsPage />;
       case 'wishlist':
         return <WishlistPage />;
+      case 'compare':
+        return <ComparePage />;
       case 'admin':
         return <AdminDashboard />;
       default:

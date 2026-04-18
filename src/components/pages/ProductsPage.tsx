@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useStore } from '@/store/store';
 import { ProductCard } from '@/components/ProductCard';
-import { ProductCardSkeleton } from '@/components/Skeletons';
+import { ProductCardSkeleton, FilterPanelSkeleton } from '@/components/Skeletons';
 import { Filter, Search, ChevronDown, Star, X, SlidersHorizontal, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Slider } from '@/components/ui/slider';
@@ -363,6 +363,11 @@ export function ProductsPage() {
           </motion.div>
         )}
 
+        {/* Filter panel skeleton when loading */}
+        {loading && showFilters && (
+          <FilterPanelSkeleton />
+        )}
+
         {/* Results count */}
         {!loading && (
           <motion.p
@@ -394,7 +399,7 @@ export function ProductsPage() {
               exit={{ opacity: 0 }}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
-              {[...Array(6)].map((_, i) => (
+              {[...Array(8)].map((_, i) => (
                 <ProductCardSkeleton key={i} />
               ))}
             </motion.div>

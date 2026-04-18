@@ -5,7 +5,8 @@ import { useStore } from '@/store/store';
 import { Hero } from '@/components/Hero';
 import { ProductCard } from '@/components/ProductCard';
 import { RecentlyViewedSection } from '@/components/RecentlyViewedSection';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { HomePageSkeleton } from '@/components/Skeletons';
 import {
   Star,
   Quote,
@@ -15,7 +16,6 @@ import {
   MessageCircle,
   ArrowRight,
   BadgeCheck,
-  Percent,
   Sparkles,
   Flame,
   Clock,
@@ -415,26 +415,25 @@ export function HomePage() {
     navigate('products');
   };
 
-  if (loading) {
-    return (
-      <div>
-        <Hero />
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="aspect-square bg-[#fef5f1] dark:bg-[#2d1f24] rounded-xl" />
-                <div className="mt-4 h-4 bg-[#fef5f1] dark:bg-[#2d1f24] rounded w-3/4" />
-                <div className="mt-2 h-4 bg-[#fef5f1] dark:bg-[#2d1f24] rounded w-1/2" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <AnimatePresence mode="wait">
+      {loading ? (
+        <motion.div
+          key="skeleton"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <HomePageSkeleton />
+        </motion.div>
+      ) : (
+        <motion.div
+          key="content"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+        >
     <div>
       <Hero />
 
@@ -788,5 +787,8 @@ export function HomePage() {
         </div>
       </section>
     </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -8,7 +8,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, Minus, Plus, Check,
   Facebook, Twitter, Truck, RotateCcw, Shield, Clock,
   Package, Droplets, Leaf, ThumbsUp, X, ZoomIn, Sparkles,
-  Copy, Ruler, Rabbit, Info,
+  Copy, Ruler, Rabbit, Info, GitCompareArrows,
 } from 'lucide-react';
 import {
   Popover, PopoverTrigger, PopoverContent,
@@ -92,6 +92,7 @@ export function ProductDetailPage() {
   const {
     productId, navigate, addToCart, isAuthenticated, user,
     toggleWishlist, wishlistItems, setWishlistItems, addRecentlyViewed,
+    compareProductIds, addToCompare, removeFromCompare,
   } = useStore();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -765,6 +766,30 @@ export function ProductDetailPage() {
               aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
             >
               <Heart size={20} className={isWishlisted ? 'fill-red-500 text-red-500' : ''} />
+            </button>
+            <button
+              onClick={() => {
+                if (!product) return;
+                if (compareProductIds.includes(product.id)) {
+                  removeFromCompare(product.id);
+                  toast(`${product.name} removed from comparison`);
+                } else {
+                  const added = addToCompare(product.id);
+                  if (added) {
+                    toast(`${product.name} added to comparison!`);
+                  } else {
+                    toast('Comparison full (max 4 products)', 'error');
+                  }
+                }
+              }}
+              className={`px-5 py-4 rounded-full transition-all flex items-center gap-2 border-2 ${
+                product && compareProductIds.includes(product.id)
+                  ? 'bg-[#fef5f1] dark:bg-[#d4a5a5]/10 border-[#d4a5a5] text-[#d4a5a5]'
+                  : 'border-[#f5e6e0] text-[#8b6f63]/60 hover:border-[#d4a5a5] hover:text-[#d4a5a5]'
+              }`}
+              aria-label={product && compareProductIds.includes(product.id) ? 'Remove from comparison' : 'Add to comparison'}
+            >
+              <GitCompareArrows size={20} />
             </button>
             <button
               onClick={async () => {
