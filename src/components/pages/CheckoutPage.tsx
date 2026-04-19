@@ -11,6 +11,7 @@ import {
   CheckCircle,
   ChevronDown,
   Plus,
+  Minus,
   Banknote,
   Truck,
   ShieldCheck,
@@ -170,7 +171,7 @@ interface PaymentMethodItem {
 }
 
 export function CheckoutPage() {
-  const { cartItems, getCartTotal, getCartOriginalTotal, clearCart, navigate, isAuthenticated, user, appliedPromoCode, applyPromoCode, removePromoCode } = useStore();
+  const { cartItems, getCartTotal, getCartOriginalTotal, clearCart, navigate, isAuthenticated, user, appliedPromoCode, applyPromoCode, removePromoCode, updateQuantity, removeFromCart } = useStore();
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [orderId, setOrderId] = useState('');
@@ -911,7 +912,29 @@ export function CheckoutPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-[#8b6f63]/60">Qty: {item.quantity}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (item.quantity <= 1) {
+                                    removeFromCart(item.id, item.selectedColor);
+                                  } else {
+                                    updateQuantity(item.id, item.quantity - 1, item.selectedColor);
+                                  }
+                                }}
+                                className="w-6 h-6 rounded-full border border-[#f5e6e0] dark:border-[#3d2f34] flex items-center justify-center text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#fef5f1] dark:bg-[#3d2f34] transition-colors"
+                              >
+                                <Minus size={12} />
+                              </button>
+                              <span className="text-xs text-[#8b6f63] dark:text-[#e8ddd5] font-medium w-5 text-center">{item.quantity}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.id, item.quantity + 1, item.selectedColor)}
+                                className="w-6 h-6 rounded-full border border-[#f5e6e0] dark:border-[#3d2f34] flex items-center justify-center text-[#8b6f63] dark:text-[#e8ddd5] hover:bg-[#fef5f1] dark:bg-[#3d2f34] transition-colors"
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
                           </div>
                           <p className="text-sm text-[#8b6f63] font-medium">${(item.price * item.quantity).toFixed(2)}</p>
                         </div>

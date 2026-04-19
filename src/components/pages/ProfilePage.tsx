@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '@/store/store';
-import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, Star, Plus, Trash2, Loader2, Shield, XCircle, Bell, Mail, MessageSquare, Tag, RefreshCw, AlertTriangle, DollarSign, CalendarDays } from 'lucide-react';
+import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, Star, Plus, Trash2, Loader2, Shield, XCircle, Bell, Mail, MessageSquare, Tag, RefreshCw, AlertTriangle, DollarSign, CalendarDays, CreditCard, Banknote } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -41,6 +41,52 @@ interface Address {
   phone?: string;
   isDefault: boolean;
 }
+
+interface PaymentMethodItem {
+  id: string;
+  type: string;
+  cardNumber?: string;
+  lastFour: string | null;
+  expiryMonth: number | null;
+  expiryYear: number | null;
+  holderName: string | null;
+  isPreferred: boolean;
+}
+
+const CARD_TYPES = [
+  { value: 'VISA', label: 'Visa' },
+  { value: 'MASTERCARD', label: 'Mastercard' },
+  { value: 'AMEX', label: 'American Express' },
+];
+
+const getPaymentIcon = (type: string) => {
+  switch (type.toUpperCase()) {
+    case 'VISA':
+    case 'MASTERCARD':
+    case 'AMEX':
+    case 'DISCOVER':
+      return <CreditCard size={20} className="text-[#8b6f63]" />;
+    case 'PAY_ON_RECEIVE':
+      return <Banknote size={20} className="text-[#8b6f63]" />;
+    default:
+      return <CreditCard size={20} className="text-[#8b6f63]" />;
+  }
+};
+
+const getPaymentLabel = (type: string) => {
+  switch (type.toUpperCase()) {
+    case 'PAY_ON_RECEIVE': return 'Pay on Receive';
+    case 'CASH_ON_DELIVERY': return 'Cash on Delivery';
+    default: return type;
+  }
+};
+
+const getPaymentDescription = (pm: PaymentMethodItem) => {
+  if (pm.type.toUpperCase() === 'PAY_ON_RECEIVE' || pm.type.toUpperCase() === 'CASH_ON_DELIVERY') {
+    return 'Pay when you receive your order';
+  }
+  return `•••• •••• •••• ${pm.lastFour || '****'}`;
+};
 
 function getRelativeTime(dateString: string): string {
   const now = new Date();
@@ -99,6 +145,19 @@ export function ProfilePage() {
   });
   const [addressSaving, setAddressSaving] = useState(false);
 
+  // Payment methods state
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    type: 'VISA',
+    cardNumber: '',
+    expiryMonth: '',
+    expiryYear: '',
+    holderName: '',
+    isPreferred: false,
+  });
+  const [paymentSaving, setPaymentSaving] = useState(false);
+
   const fetchOrders = useCallback(() => {
     if (!user) return;
     fetch(`/api/orders?userId=${user.id}`)
@@ -112,6 +171,14 @@ export function ProfilePage() {
     fetch(`/api/addresses?userId=${user.id}`)
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setAddresses(data); })
+      .catch(() => {});
+  }, [user]);
+
+  const fetchPaymentMethods = useCallback(() => {
+    if (!user) return;
+    fetch(`/api/payment-methods?userId=${user.id}`)
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setPaymentMethods(data); })
       .catch(() => {});
   }, [user]);
 
@@ -141,7 +208,8 @@ export function ProfilePage() {
     }
     fetchOrders();
     fetchAddresses();
-  }, [isAuthenticated, user, navigate, fetchOrders, fetchAddresses]);
+    fetchPaymentMethods();
+  }, [isAuthenticated, user, navigate, fetchOrders, fetchAddresses, fetchPaymentMethods]);
 
   useEffect(() => {
     fetchWishlist();
@@ -261,6 +329,131 @@ export function ProfilePage() {
       }
     } catch {
       toast('Failed to update default address', 'error');
+    }
+  };
+
+  // --- Payment Method Handlers ---
+  const openPaymentModal = () => {
+    setPaymentForm({
+      type: 'VISA',
+      cardNumber: '',
+      expiryMonth: '',
+      expiryYear: '',
+      holderName: user?.name || '',
+      isPreferred: paymentMethods.length === 0,
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handleAddPayOnReceive = async () => {
+    const existing = paymentMethods.find(pm => pm.type.toUpperCase() === 'PAY_ON_RECEIVE');
+    if (existing) {
+      toast('Pay on Receive is already added', 'error');
+      return;
+    }
+    if (!user) return;
+    setPaymentSaving(true);
+    try {
+      const res = await fetch('/api/payment-methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          type: 'PAY_ON_RECEIVE',
+          isPreferred: paymentMethods.length === 0,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast('Pay on Receive added successfully!');
+        fetchPaymentMethods();
+      } else {
+        toast(data.error || 'Failed to add payment method', 'error');
+      }
+    } catch {
+      toast('Failed to add payment method', 'error');
+    }
+    setPaymentSaving(false);
+  };
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    const lastFour = paymentForm.cardNumber.replace(/\s/g, '').slice(-4);
+    if (paymentForm.cardNumber.replace(/\s/g, '').length < 4) {
+      toast('Please enter a valid card number', 'error');
+      return;
+    }
+    const month = parseInt(paymentForm.expiryMonth);
+    const year = parseInt(paymentForm.expiryYear);
+    if (!month || month < 1 || month > 12) {
+      toast('Please enter a valid expiry month', 'error');
+      return;
+    }
+    if (!year || year < 2024 || year > 2035) {
+      toast('Please enter a valid expiry year', 'error');
+      return;
+    }
+
+    setPaymentSaving(true);
+    try {
+      const res = await fetch('/api/payment-methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          type: paymentForm.type,
+          lastFour,
+          expiryMonth: month,
+          expiryYear: year,
+          holderName: paymentForm.holderName,
+          isPreferred: paymentForm.isPreferred,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast('Payment method added successfully!');
+        fetchPaymentMethods();
+        setShowPaymentModal(false);
+      } else {
+        toast(data.error || 'Failed to add payment method', 'error');
+      }
+    } catch {
+      toast('Failed to add payment method', 'error');
+    }
+    setPaymentSaving(false);
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/payment-methods/${paymentId}?userId=${user.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        toast('Payment method removed');
+        fetchPaymentMethods();
+      } else {
+        toast(data.error || 'Failed to remove payment method', 'error');
+      }
+    } catch {
+      toast('Failed to remove payment method', 'error');
+    }
+  };
+
+  const handleSetPreferredPayment = async (paymentId: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/payment-methods/${paymentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, isPreferred: true }),
+      });
+      if (res.ok) {
+        toast('Preferred payment method updated');
+        fetchPaymentMethods();
+      }
+    } catch {
+      toast('Failed to update preferred payment method', 'error');
     }
   };
 
@@ -872,6 +1065,87 @@ export function ProfilePage() {
                     </div>
                   </div>
 
+                  {/* Payment Methods */}
+                  <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#fef5f1] dark:bg-[#3d2f34] flex items-center justify-center">
+                          <CreditCard size={20} className="text-[#d4a5a5]" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-medium text-[#8b6f63] dark:text-[#e8ddd5]">Payment Methods</h3>
+                          <p className="text-sm text-[#8b6f63]/60 dark:text-[#e8ddd5]/60">Manage your saved payment methods</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={openPaymentModal}
+                          className="px-4 py-2 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors flex items-center gap-1.5"
+                        >
+                          <Plus size={16} />
+                          Add Card
+                        </button>
+                        <button
+                          onClick={handleAddPayOnReceive}
+                          disabled={paymentSaving}
+                          className="px-4 py-2 border border-[#d4a5a5] text-[#d4a5a5] rounded-full text-sm hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors flex items-center gap-1.5 disabled:opacity-60"
+                        >
+                          <Banknote size={16} />
+                          Pay on Receive
+                        </button>
+                      </div>
+                    </div>
+
+                    {paymentMethods.length === 0 ? (
+                      <div className="text-center py-8">
+                        <CreditCard size={40} className="text-[#8b6f63]/20 mx-auto mb-3" />
+                        <p className="text-sm text-[#8b6f63]/70 mb-1">No payment methods saved</p>
+                        <p className="text-xs text-[#8b6f63]/50">Add a card or select Pay on Receive</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {paymentMethods.map((pm) => (
+                          <div
+                            key={pm.id}
+                            className="flex items-center justify-between p-4 rounded-lg bg-[#fef5f1]/50 dark:bg-[#3d2f34]/50 border border-[#f5e6e0]/30 dark:border-[#3d2f34]/50 hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34]/70 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              {getPaymentIcon(pm.type)}
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5]">{getPaymentLabel(pm.type)}</p>
+                                  {pm.isPreferred && (
+                                    <span className="px-2 py-0.5 bg-[#d4a5a5] text-white text-[10px] rounded-full">Preferred</span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-[#8b6f63]/60 dark:text-[#e8ddd5]/60">{getPaymentDescription(pm)}</p>
+                                {pm.holderName && (
+                                  <p className="text-xs text-[#8b6f63]/50 dark:text-[#e8ddd5]/50">{pm.holderName}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!pm.isPreferred && (
+                                <button
+                                  onClick={() => handleSetPreferredPayment(pm.id)}
+                                  className="px-3 py-1.5 text-xs text-[#d4a5a5] border border-[#d4a5a5]/30 rounded-full hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors"
+                                >
+                                  Set Preferred
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeletePayment(pm.id)}
+                                className="px-3 py-1.5 text-xs text-red-500 border border-red-300 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Delete Account */}
                   <div className="bg-white dark:bg-[#2d1f24] rounded-lg shadow-sm p-6 border border-red-200 dark:border-red-900/30">
                     <div className="flex items-center gap-3 mb-4">
@@ -1044,6 +1318,124 @@ export function ProfilePage() {
                   >
                     {addressSaving ? <Loader2 size={18} className="animate-spin" /> : null}
                     {addressSaving ? 'Saving...' : editingAddress ? 'Update Address' : 'Add Address'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== PAYMENT MODAL ===== */}
+      <AnimatePresence>
+        {showPaymentModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowPaymentModal(false)} />
+            <motion.div
+              className="relative bg-white dark:bg-[#2d1f24] rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-serif text-[#8b6f63]">
+                  Add Payment Method
+                </h3>
+                <button onClick={() => setShowPaymentModal(false)} className="text-[#8b6f63]/40 hover:text-[#8b6f63] transition-colors">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              </div>
+              <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Card Type</label>
+                  <select
+                    value={paymentForm.type}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, type: e.target.value })}
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                  >
+                    {CARD_TYPES.map((ct) => (
+                      <option key={ct.value} value={ct.value}>{ct.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Card Number</label>
+                  <input
+                    type="text"
+                    value={paymentForm.cardNumber}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, cardNumber: e.target.value.replace(/\D/g, '').slice(0, 16) })}
+                    required
+                    placeholder="4242 4242 4242 4242"
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Expiry Month</label>
+                    <input
+                      type="text"
+                      value={paymentForm.expiryMonth}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, expiryMonth: e.target.value.replace(/\D/g, '').slice(0, 2) })}
+                      required
+                      placeholder="MM"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#8b6f63] mb-1">Expiry Year</label>
+                    <input
+                      type="text"
+                      value={paymentForm.expiryYear}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, expiryYear: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                      required
+                      placeholder="YYYY"
+                      className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#8b6f63] mb-1">Cardholder Name</label>
+                  <input
+                    type="text"
+                    value={paymentForm.holderName}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, holderName: e.target.value })}
+                    required
+                    placeholder="Name on card"
+                    className="w-full px-4 py-3 rounded-lg bg-[#fef5f1] border border-[#f5e6e0]/80 text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5] transition-all"
+                  />
+                </div>
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentForm({ ...paymentForm, isPreferred: !paymentForm.isPreferred })}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      paymentForm.isPreferred ? 'bg-[#d4a5a5]' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${paymentForm.isPreferred ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                  <span className="text-sm text-[#8b6f63] dark:text-[#e8ddd5]">Set as preferred payment method</span>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentModal(false)}
+                    className="flex-1 px-4 py-3 border border-[#8b6f63]/20 text-[#8b6f63] rounded-full text-sm hover:bg-[#fef5f1] dark:hover:bg-[#3d2f34] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={paymentSaving}
+                    className="flex-1 px-4 py-3 bg-[#d4a5a5] text-white rounded-full text-sm hover:bg-[#c89a9a] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {paymentSaving && <Loader2 size={16} className="animate-spin" />}
+                    {paymentSaving ? 'Adding...' : 'Add Payment Method'}
                   </button>
                 </div>
               </form>

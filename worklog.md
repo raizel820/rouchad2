@@ -177,3 +177,31 @@ Stage Summary:
 - Lint: 0 errors, 0 warnings
 - Files modified: `src/app/api/products/[id]/route.ts`, `src/components/pages/ProductDetailPage.tsx`, `src/components/CookieConsent.tsx`
 
+---
+Task ID: Session-8-features
+Agent: Main
+Task: Add payment settings to Profile, quantity controls to Checkout, reset app button to Admin
+
+Work Log:
+- Bug 1: Customer settings (ProfilePage Settings tab) missing payment methods
+  - Root cause: ProfilePage's Settings tab only had notification toggles, account info, and danger zone. No payment methods section existed here (only in the separate SettingsPage).
+  - Fix: Added full Payment Methods section to ProfilePage Settings tab — card list with icons, add card modal (type, number, expiry, holder, preferred toggle), "Pay on Receive" option, delete/set-preferred actions. Data persisted via `/api/payment-methods` API.
+
+- Bug 2: Cart page quantity selector
+  - Investigation: CartPage already has a `QuantityControls` component with +/- buttons (lines 43-168, used at line 581). This was working correctly. No change needed.
+
+- Bug 3: Checkout page missing quantity controls
+  - Root cause: In step 3 (review), cart items showed `Qty: {item.quantity}` as static text (line 914). No way to adjust quantity during checkout.
+  - Fix: Added Minus/Plus icon imports, destructured `updateQuantity` and `removeFromCart` from store, replaced static text with interactive +/- buttons. Minus at qty=1 removes item from cart.
+
+- Bug 4: Admin reset app button
+  - Created `/api/admin/reset/route.ts` — deletes all data from every table in FK-safe order (OrderItem, Review, Wishlist, Order, SaleCategory, PromoCode, Sale, PaymentMethod, Address, Product, Category, ShopSettings, Newsletter, User), cleans `public/uploads/` directory, then re-seeds via `/api/seed` and `/api/seed-sales`.
+  - Added "Danger Zone" card to AdminDashboard Settings tab with two-step confirmation: first click arms (shows "Confirm Reset? Click again" with 3s timeout), second click executes. On success, shows toast and reloads page after 1.5s.
+
+Stage Summary:
+- ProfilePage now has complete payment methods management
+- CheckoutPage now has interactive quantity controls in the review step
+- Admin can reset the entire app to initial state via settings
+- Lint: 0 errors, 0 warnings
+- Files: ProfilePage.tsx, CheckoutPage.tsx, AdminDashboard.tsx, src/app/api/admin/reset/route.ts (new)
+

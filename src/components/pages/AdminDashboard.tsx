@@ -40,6 +40,7 @@ import {
   Sparkles,
   Layers,
   Minus,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -248,6 +249,8 @@ export function AdminDashboard() {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [faviconUploading, setFaviconUploading] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
 
@@ -860,6 +863,37 @@ export function AdminDashboard() {
       const data = await res.json();
       if (Array.isArray(data)) setPromoCodes(data);
     } catch {}
+  };
+
+  // --- Reset App Handler ---
+  useEffect(() => {
+    if (!resetConfirm) return;
+    const timer = setTimeout(() => setResetConfirm(false), 3000);
+    return () => clearTimeout(timer);
+  }, [resetConfirm]);
+
+  const handleResetApp = async () => {
+    if (resetting) return;
+    if (!resetConfirm) {
+      setResetConfirm(true);
+      return;
+    }
+    setResetting(true);
+    try {
+      const res = await fetch('/api/admin/reset', { method: 'POST' });
+      if (res.ok) {
+        toast('App reset successfully! Reloading...', 'success');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        toast('Failed to reset app', 'error');
+        setResetting(false);
+        setResetConfirm(false);
+      }
+    } catch {
+      toast('Failed to reset app', 'error');
+      setResetting(false);
+      setResetConfirm(false);
+    }
   };
 
   // --- Settings Handlers ---
@@ -1729,6 +1763,41 @@ export function AdminDashboard() {
                 >
                   <RotateCcw size={14} />
                   Reset All
+                </button>
+              </div>
+            </div>
+
+            {/* Danger Zone — Full App Reset */}
+            <div className="rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 p-6">
+              <div className="flex items-center gap-3 mb-2">
+                <AlertTriangle size={20} className="text-red-500" />
+                <h2 className="text-xl font-serif text-red-600 dark:text-red-400">Danger Zone</h2>
+              </div>
+              <p className="text-sm text-red-600/80 dark:text-red-400/70 mb-5 ml-8">
+                Reset the entire application to its initial state. This will delete ALL data including products, orders, customers, and uploaded files.
+              </p>
+              <div className="ml-8">
+                <button
+                  onClick={handleResetApp}
+                  disabled={resetting}
+                  className={
+                    resetConfirm
+                      ? 'px-5 py-2.5 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors text-sm flex items-center gap-2 animate-pulse'
+                      : 'px-5 py-2.5 border border-red-300 text-red-600 rounded-full hover:bg-red-100 transition-colors text-sm flex items-center gap-2'
+                  }
+                >
+                  {resetting ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : resetConfirm ? (
+                    <AlertTriangle size={16} />
+                  ) : (
+                    <Trash2 size={16} />
+                  )}
+                  {resetting
+                    ? 'Resetting...'
+                    : resetConfirm
+                      ? 'Confirm Reset? Click again'
+                      : 'Reset App'}
                 </button>
               </div>
             </div>
