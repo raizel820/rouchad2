@@ -44,6 +44,7 @@ interface Review {
   rating: number;
   comment: string;
   createdAt: string;
+  verifiedPurchase?: boolean;
   user: { name: string };
 }
 
@@ -149,6 +150,7 @@ export function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('Description');
 
   // Review form state
+  const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -397,6 +399,7 @@ export function ProductDetailPage() {
       toast('Review submitted successfully!');
       setReviewRating(0);
       setReviewComment('');
+      setShowReviewForm(false);
       const [reviewsData, productData] = await Promise.all([
         fetchReviews(product.id),
         fetch(`/api/products/${product.id}`).then((r) => r.json()),
@@ -1022,30 +1025,7 @@ export function ProductDetailPage() {
               className="max-w-3xl"
             >
               <h3 className="text-lg font-serif text-[#8b6f63] mb-4">About this product</h3>
-              <p className="text-[#8b6f63]/70 leading-relaxed mb-6">{product.description}</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-                <div className="flex items-start gap-3 p-4 bg-[#fef5f1] rounded-xl">
-                  <Leaf size={20} className="text-[#d4a5a5] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-[#8b6f63]">Clean Formula</p>
-                    <p className="text-xs text-[#8b6f63]/50 mt-1">Free from harmful chemicals</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-4 bg-[#fef5f1] rounded-xl">
-                  <Droplets size={20} className="text-[#d4a5a5] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-[#8b6f63]">Hydrating</p>
-                    <p className="text-xs text-[#8b6f63]/50 mt-1">Infused with hyaluronic acid</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-4 bg-[#fef5f1] rounded-xl">
-                  <Shield size={20} className="text-[#d4a5a5] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-[#8b6f63]">Dermatologist Tested</p>
-                    <p className="text-xs text-[#8b6f63]/50 mt-1">Safe for all skin types</p>
-                  </div>
-                </div>
-              </div>
+              <p className="text-[#8b6f63]/70 leading-relaxed">{product.description}</p>
             </motion.div>
           )}
 
@@ -1298,6 +1278,23 @@ export function ProductDetailPage() {
 
                 <h3 className="text-lg font-serif text-[#8b6f63] mb-6">Customer Reviews ({reviews.length})</h3>
 
+                {/* Write a Review Button */}
+                <div className="mb-8">
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        toast('Please sign in to write a review', 'info');
+                        return;
+                      }
+                      setShowReviewForm(!showReviewForm);
+                    }}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-all active:scale-95 shadow-sm hover:shadow-md"
+                  >
+                    <Send size={16} />
+                    Write a Review
+                  </button>
+                </div>
+
                 {/* Sort Dropdown + Reviews */}
                 {reviews.length > 0 && (
                   <>
@@ -1343,10 +1340,12 @@ export function ProductDetailPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-sm font-medium text-[#8b6f63] truncate">{review.user.name}</span>
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-medium rounded-full border border-green-200">
-                                    <Check size={10} className="text-green-500" />
-                                    Verified Purchase
-                                  </span>
+                                  {review.verifiedPurchase && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-medium rounded-full border border-green-200">
+                                      <Check size={10} className="text-green-500" />
+                                      Verified Purchase
+                                    </span>
+                                  )}
                                 </div>
                                 <span className="text-xs text-[#8b6f63]/40">{formatRelativeDate(review.createdAt)}</span>
                               </div>
@@ -1378,18 +1377,53 @@ export function ProductDetailPage() {
                 )}
 
                 {reviews.length === 0 && (
-                  <p className="text-[#8b6f63]/50 mb-10">No reviews yet. Be the first to share your experience!</p>
-                )}
-
-                {/* Review Submission Form */}
-                {isAuthenticated ? (
                   <motion.div
-                    className="max-w-2xl bg-white rounded-xl p-6 shadow-sm border border-[#f5e6e0]/50"
+                    className="flex flex-col items-center justify-center py-16 px-6 text-center"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
                   >
-                    <h4 className="text-lg font-medium text-[#8b6f63] mb-4">Write a Review</h4>
+                    <div className="w-20 h-20 rounded-full bg-[#fef5f1] flex items-center justify-center mb-6">
+                      <Star size={32} className="text-[#d4a5a5]/40" />
+                    </div>
+                    <h4 className="text-lg font-medium text-[#8b6f63] mb-2">No reviews yet</h4>
+                    <p className="text-sm text-[#8b6f63]/50 max-w-sm mb-6">
+                      This product hasn't received any reviews yet. Be the first to share your experience and help others make informed decisions!
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          toast('Please sign in to write a review', 'info');
+                          return;
+                        }
+                        setShowReviewForm(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#d4a5a5] text-white text-sm rounded-full hover:bg-[#c89a9a] transition-all active:scale-95"
+                    >
+                      <Send size={15} />
+                      Be the First to Review
+                    </button>
+                  </motion.div>
+                )}
+
+                {/* Review Submission Form - togglable */}
+                {showReviewForm && isAuthenticated && (
+                  <motion.div
+                    className="max-w-2xl bg-white rounded-xl p-6 shadow-sm border border-[#f5e6e0]/50"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-medium text-[#8b6f63]">Write a Review</h4>
+                      <button
+                        onClick={() => { setShowReviewForm(false); setReviewRating(0); setReviewComment(''); }}
+                        className="p-1.5 rounded-full text-[#8b6f63]/40 hover:text-[#8b6f63] hover:bg-[#fef5f1] transition-colors"
+                        aria-label="Close review form"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
                     <form onSubmit={handleSubmitReview} className="space-y-4">
                       <div>
                         <label className="block text-sm text-[#8b6f63]/70 mb-2">Your Rating</label>
@@ -1429,35 +1463,34 @@ export function ProductDetailPage() {
                           className="w-full px-4 py-3 rounded-xl border border-[#f5e6e0] bg-[#fef5f1] text-[#8b6f63] placeholder:text-[#8b6f63]/40 focus:outline-none focus:ring-2 focus:ring-[#d4a5a5]/50 focus:border-[#d4a5a5] resize-none transition-all"
                         />
                       </div>
-                      <button
-                        type="submit"
-                        disabled={submittingReview || reviewRating === 0}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#d4a5a5]"
-                      >
-                        {submittingReview ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Submitting...
-                          </>
-                        ) : (
-                          <>
-                            <Send size={16} />
-                            Submit Review
-                          </>
-                        )}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="submit"
+                          disabled={submittingReview || reviewRating === 0}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-[#d4a5a5] text-white rounded-full hover:bg-[#c89a9a] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#d4a5a5]"
+                        >
+                          {submittingReview ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            <>
+                              <Send size={16} />
+                              Submit Review
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowReviewForm(false); setReviewRating(0); setReviewComment(''); }}
+                          className="px-6 py-3 text-sm text-[#8b6f63]/60 hover:text-[#8b6f63] rounded-full transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </form>
                   </motion.div>
-                ) : (
-                  <div className="max-w-2xl bg-[#fef5f1] rounded-xl p-6 border border-[#f5e6e0] text-center">
-                    <p className="text-[#8b6f63]/70 mb-3">Please log in to write a review.</p>
-                    <button
-                      onClick={() => navigate('login')}
-                      className="inline-block px-6 py-2 bg-[#d4a5a5] text-white text-sm rounded-full hover:bg-[#c89a9a] transition-all"
-                    >
-                      Log In
-                    </button>
-                  </div>
                 )}
               </div>
             </motion.div>

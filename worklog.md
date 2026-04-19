@@ -154,3 +154,26 @@ Stage Summary:
 - Lint: 0 errors, 2 pre-existing warnings (unchanged)
 - Files modified: AdminDashboard.tsx, ProductDetailPage.tsx, Header.tsx, Footer.tsx, page.tsx, LoginPage.tsx, SignupPage.tsx, ContactPage.tsx, HomePage.tsx
 
+---
+Task ID: Session-7-bugfix
+Agent: Main
+Task: Fix 2 bugs - product page sale pricing not showing, hardcoded feature tags
+
+Work Log:
+- Bug 1: Product page showed only original price for sale items
+  - Root cause: `/api/products/[id]` (individual product endpoint) returned raw DB data without sale enrichment. The list endpoint `/api/products` had enrichment but the detail page used the individual endpoint.
+  - Fix: Added sale enrichment logic to `/api/products/[id]/route.ts` — same logic as list API: fetches active sales, calculates effective discount (max of category discount and product discount), returns `onSale`, `discountedPrice`, `effectiveDiscount`, `savings`, `saleName` fields.
+  - Frontend already had correct conditional rendering (line 679): shows discounted price + original strikethrough + discount badge + savings + sale name when `product.onSale && product.effectiveDiscount > 0`.
+
+- Bug 2: Product page showed hardcoded feature tags ("Clean Formula", "Hydrating", "Dermatologist Tested") in the Description tab
+  - Root cause: Lines 1029-1051 in ProductDetailPage.tsx had a hardcoded 3-card grid with Leaf/Droplets/Shield icons and static text
+  - Fix: Removed the entire hardcoded grid. Description tab now only shows the product description text (which is admin-editable).
+
+- Also fixed: CookieConsent.tsx lint error (`react-hooks/set-state-in-effect`) — rewrote to use `useSyncExternalStore` + `useCallback` pattern instead of `useEffect` with `setState`.
+
+Stage Summary:
+- Sale pricing now correctly displays on product detail pages: original price (strikethrough), discount percentage badge, final discounted price, savings amount, and sale name
+- Removed hardcoded feature tags from Description tab — only admin-controlled content shown
+- Lint: 0 errors, 0 warnings
+- Files modified: `src/app/api/products/[id]/route.ts`, `src/components/pages/ProductDetailPage.tsx`, `src/components/CookieConsent.tsx`
+

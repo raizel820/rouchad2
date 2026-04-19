@@ -31,8 +31,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'UserId, productId, and rating are required' }, { status: 400 });
     }
 
+    // Check if user has purchased this product (verified purchase)
+    const purchasedOrderItems = await db.orderItem.findMany({
+      where: {
+        productId,
+        order: { userId },
+      },
+    });
+
+    const verifiedPurchase = purchasedOrderItems.length > 0;
+
     const review = await db.review.create({
-      data: { userId, productId, rating, comment },
+      data: { userId, productId, rating, comment, verifiedPurchase },
       include: { user: { select: { name: true } } },
     });
 

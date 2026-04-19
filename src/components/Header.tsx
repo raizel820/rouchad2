@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore, type Product } from '@/store/store';
 import { toast } from '@/lib/toast';
 import { MiniCartDrawer } from '@/components/MiniCartDrawer';
+import { NotificationBell } from '@/components/NotificationBell';
 import { useTheme } from 'next-themes';
 
 interface SearchResult {
@@ -660,7 +661,7 @@ export function Header() {
 
   return (
     <>
-      <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 dark:bg-[#1a1215]/90 backdrop-blur-md shadow-sm' : 'bg-white/95 dark:bg-[#1a1215]/95 backdrop-blur-sm'} border-b border-[#f5e6e0] dark:border-[#2d1f24] relative`}>
+      <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/80 dark:bg-[#1a1215]/80 backdrop-blur-xl shadow-sm border-b border-[#f5e6e0]/50 dark:border-[#3d2f34]/50' : 'bg-white/95 dark:bg-[#1a1215]/95 backdrop-blur-sm'} relative`}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-4">
             {/* Mobile menu button */}
@@ -759,6 +760,9 @@ export function Header() {
                   </AnimatePresence>
                 </button>
               )}
+
+              {/* Notification Bell */}
+              <NotificationBell />
 
               {/* Wishlist */}
               <button

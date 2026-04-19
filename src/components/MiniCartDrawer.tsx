@@ -211,7 +211,7 @@ export function MiniCartDrawer({ isOpen, onClose }: MiniCartDrawerProps) {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={onClose}
+                  onClick={() => { onClose(); navigate('products'); }}
                   className="mt-2 px-8 py-3 bg-[#d4a5a5] text-white rounded-full text-sm font-medium hover:bg-[#c89a9a] transition-all shadow-lg shadow-[#d4a5a5]/20"
                 >
                   Start Shopping

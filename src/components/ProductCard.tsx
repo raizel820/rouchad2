@@ -189,7 +189,7 @@ export function ProductCard({ product }: ProductCardProps) {
       transition={{ duration: 0.2 }}
       onClick={handleClick}
     >
-      <div className="bg-white dark:bg-[#2d1f24] rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-[#f5e6e0]/50 dark:border-[#3d2f34]/50">
+      <div className="bg-white dark:bg-[#2d1f24] rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-[#f5e6e0]/50 dark:border-[#3d2f34]/50 hover:scale-[1.02]">
         <div className="relative aspect-square bg-[#fef5f1] dark:bg-[#3d2f34] overflow-hidden">
           {/* Ken Burns zoom + translate on hover */}
           {!imgError ? (

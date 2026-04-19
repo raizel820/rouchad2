@@ -190,7 +190,7 @@ export const useStore = create<StoreState>((set, get) => ({
   profileTab: 'orders' as ProfileTab,
 
   // Recently Viewed defaults
-  recentlyViewed: [],
+  recentlyViewed: typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('recentlyViewed') || '[]') : [],
 
   // Quick View defaults
   quickViewProduct: null,
@@ -298,10 +298,15 @@ export const useStore = create<StoreState>((set, get) => ({
   addRecentlyViewed: (product: Product) => {
     set((state) => {
       const filtered = state.recentlyViewed.filter((p) => p.id !== product.id);
-      return { recentlyViewed: [product, ...filtered].slice(0, 8) };
+      const updated = [product, ...filtered].slice(0, 8);
+      localStorage.setItem('recentlyViewed', JSON.stringify(updated));
+      return { recentlyViewed: updated };
     });
   },
-  clearRecentlyViewed: () => set({ recentlyViewed: [] }),
+  clearRecentlyViewed: () => {
+    localStorage.removeItem('recentlyViewed');
+    set({ recentlyViewed: [] });
+  },
 
   // Quick View actions
   openQuickView: (product: Product) => set({ quickViewProduct: product, isQuickViewOpen: true }),

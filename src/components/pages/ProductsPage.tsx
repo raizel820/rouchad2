@@ -7,6 +7,7 @@ import { ProductCardSkeleton, FilterPanelSkeleton } from '@/components/Skeletons
 import { Filter, Search, ChevronDown, Star, X, SlidersHorizontal, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Slider } from '@/components/ui/slider';
+import { RecentlyViewedSection } from '@/components/RecentlyViewedSection';
 
 interface Product {
   id: string;
@@ -28,7 +29,7 @@ interface Product {
 const STAR_OPTIONS = [4, 3, 2, 1];
 
 export function ProductsPage() {
-  const { selectedCategory, setSelectedCategory, sortBy, setSortBy, searchQuery, setSearchQuery } = useStore();
+  const { selectedCategory, setSelectedCategory, sortBy, setSortBy, searchQuery, setSearchQuery, recentlyViewed } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [localSearch, setLocalSearch] = useState(searchQuery);
@@ -446,6 +447,8 @@ export function ProductsPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {recentlyViewed.length > 0 && <RecentlyViewedSection />}
     </div>
   );
 }

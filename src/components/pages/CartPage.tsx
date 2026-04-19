@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore, type Product } from '@/store/store';
-import { Trash2, Plus, Minus, ShoppingBag, Heart, Shield, RotateCcw, Truck, Percent, Star, Check, Clock, Sparkles, Gift, ChevronRight } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, Heart, Shield, RotateCcw, Truck, Percent, Star, Check, Clock, Sparkles, Gift, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -323,6 +323,7 @@ export function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal, getCartOriginalTotal, navigate, toggleWishlist, isWishlisted, addToCart } = useStore();
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [fetchKey, setFetchKey] = useState(0);
+  const [showMobileSummary, setShowMobileSummary] = useState(false);
 
   // Use fetchKey to trigger re-fetches without calling setState in effect
   useEffect(() => {
@@ -763,6 +764,75 @@ export function CartPage() {
             </button>
           </motion.div>
         </div>
+      </div>
+
+      {/* Mobile Order Summary - Collapsible */}
+      <div className="lg:hidden mt-6 mb-4">
+        <motion.button
+          onClick={() => setShowMobileSummary(!showMobileSummary)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-xl border border-[#f5e6e0]/50 dark:border-[#3d2f34]/50"
+          whileTap={{ scale: 0.98 }}
+        >
+          <span className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5]">Show Order Summary</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-[#8b6f63] dark:text-[#e8ddd5]">${total.toFixed(2)}</span>
+            <motion.div
+              animate={{ rotate: showMobileSummary ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown size={16} className="text-[#8b6f63] dark:text-[#e8ddd5]" />
+            </motion.div>
+          </div>
+        </motion.button>
+        <AnimatePresence>
+          {showMobileSummary && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="overflow-hidden"
+            >
+              <div className="px-4 py-4 mt-2 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-xl border border-[#f5e6e0]/50 dark:border-[#3d2f34]/50">
+                {totalSavings > 0 && <SavingsBanner totalSavings={totalSavings} />}
+                <div className="space-y-2.5">
+                  {totalSavings > 0 && (
+                    <div className="flex justify-between text-[#8b6f63] dark:text-[#e8ddd5]">
+                      <span className="text-[#8b6f63]/60 dark:text-[#e8ddd5]/50">Original Price</span>
+                      <span className="line-through text-[#8b6f63]/40 dark:text-[#e8ddd5]/30">${originalSubtotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-[#8b6f63] dark:text-[#e8ddd5]">
+                    <span>Subtotal</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  {totalSavings > 0 && (
+                    <div className="flex justify-between text-green-600 dark:text-green-400">
+                      <span className="font-medium">Total Savings</span>
+                      <span className="font-medium">-${totalSavings.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-[#8b6f63] dark:text-[#e8ddd5]">
+                    <span>Shipping</span>
+                    <span className={qualifiesForFreeShipping ? 'text-green-600 dark:text-green-400 font-medium' : ''}>
+                      {qualifiesForFreeShipping ? 'Free' : '$5.99'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[#8b6f63] dark:text-[#e8ddd5]">
+                    <span>Tax (10%)</span>
+                    <span>${tax.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-[#8b6f63]/15 dark:border-[#3d2f34] pt-2.5">
+                    <div className="flex justify-between text-lg text-[#8b6f63] dark:text-[#e8ddd5] font-bold">
+                      <span>Total</span>
+                      <span>${total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Mobile Fixed Bottom Bar */}

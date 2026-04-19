@@ -26,7 +26,6 @@ import {
   Check,
   Percent,
   Settings,
-  Image,
   Upload,
   Link,
   Calendar,
@@ -1629,7 +1628,7 @@ export function AdminDashboard() {
                     <img src={shopSettings.logoUrl} alt="Shop Logo" className="w-full h-full object-contain p-2" />
                   ) : (
                     <div className="text-center">
-                      <Image size={24} className="text-[#d4a5a5]/40 mx-auto mb-1" />
+                      <ImageIcon size={24} className="text-[#d4a5a5]/40 mx-auto mb-1" />
                       <span className="text-xs text-[#8b6f63]/40">No logo</span>
                     </div>
                   )}
@@ -1905,7 +1904,7 @@ export function AdminDashboard() {
 
                 {/* Product Image */}
                 <div className="bg-[#fef5f1] rounded-lg p-4 space-y-3">
-                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Image size={16} /> Product Image</h4>
+                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><ImageIcon size={16} /> Product Image</h4>
                   <div className="flex gap-2 mb-2">
                     <button onClick={() => setProductForm(prev => ({ ...prev, imageMode: 'url' }))}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors ${productForm.imageMode === 'url' ? 'bg-[#d4a5a5] text-white' : 'bg-white border border-[#f5e6e0] text-[#8b6f63]'}`}>
