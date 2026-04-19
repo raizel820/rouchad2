@@ -162,6 +162,13 @@ interface ShopSettings {
   faviconUrl?: string | null;
 }
 
+const PRODUCT_TAGS = [
+  'Cruelty-Free', 'Vegan', 'Clean Beauty', 'Organic', 'Natural',
+  'Paraben-Free', 'Sulfate-Free', 'Gluten-Free', 'Dermatologist Tested',
+  'Fragrance-Free', 'Oil-Free', 'Non-Comedogenic', 'Recyclable Packaging',
+  '12M After Opening',
+];
+
 const PRESET_COLORS = [
   '#FF69B4', '#FFB6C1', '#DB7093', '#C71585', '#8B4513',
   '#D2691E', '#F4A460', '#DEB887', '#FFE4B5', '#FFA07A',
@@ -208,7 +215,7 @@ export function AdminDashboard() {
   const [productForm, setProductForm] = useState({
     name: '', price: '', category: '', image: '', imageMode: 'url' as 'url' | 'upload',
     images: [] as string[], imageGalleryMode: 'url' as 'url' | 'upload',
-    description: '', ingredients: '', colors: [] as string[], badge: '', stock: '50', discountPercentage: '0',
+    description: '', ingredients: '', colors: [] as string[], badge: '', tags: [] as string[], stock: '50', discountPercentage: '0',
   });
   const [productSaving, setProductSaving] = useState(false);
   const [productUploading, setProductUploading] = useState(false);
@@ -479,6 +486,15 @@ export function AdminDashboard() {
   const openProductModal = (product?: Product) => {
     if (product) {
       setEditingProduct(product);
+      // Parse tags from badge field (JSON array) or keep as plain badge
+      let parsedTags: string[] = [];
+      let badgeText = product.badge || '';
+      if (badgeText.startsWith('[')) {
+        try {
+          parsedTags = JSON.parse(badgeText);
+          badgeText = '';
+        } catch { /* not valid JSON, keep as-is */ }
+      }
       setProductForm({
         name: product.name,
         price: String(product.price),
@@ -490,13 +506,14 @@ export function AdminDashboard() {
         description: product.description,
         ingredients: product.ingredients || '',
         colors: product.colors ? JSON.parse(product.colors) : [],
-        badge: product.badge || '',
+        badge: badgeText,
+        tags: parsedTags,
         stock: String(product.stock),
         discountPercentage: String(product.discountPercentage || 0),
       });
     } else {
       setEditingProduct(null);
-      setProductForm({ name: '', price: '', category: 'Makeup', image: '', imageMode: 'url', images: [], imageGalleryMode: 'url', description: '', ingredients: '', colors: [], badge: '', stock: '50', discountPercentage: '0' });
+      setProductForm({ name: '', price: '', category: 'Makeup', image: '', imageMode: 'url', images: [], imageGalleryMode: 'url', description: '', ingredients: '', colors: [], badge: '', tags: [], stock: '50', discountPercentage: '0' });
     }
     setIsProductModalOpen(true);
   };
@@ -567,9 +584,11 @@ export function AdminDashboard() {
         discountPercentage: parseFloat(productForm.discountPercentage) || 0,
         colors: productForm.colors.length > 0 ? JSON.stringify(productForm.colors) : null,
         images: productForm.images.length > 0 ? JSON.stringify(productForm.images) : null,
+        // If tags are selected, store as JSON array in badge; otherwise keep badge as plain text
+        badge: productForm.tags.length > 0 ? JSON.stringify(productForm.tags) : (productForm.badge || null),
       };
       // Remove non-payload fields
-      const { imageMode, imageGalleryMode, ...data } = payload;
+      const { imageMode, imageGalleryMode, tags, ...data } = payload;
       if (editingProduct) {
         const res = await fetch(`/api/admin/products/${editingProduct.id}`, {
           method: 'PUT',
@@ -632,6 +651,15 @@ export function AdminDashboard() {
     } catch {
       toast('Failed to delete customer', 'error');
     }
+  };
+
+  const toggleProductTag = (tag: string) => {
+    setProductForm(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tag)
+        ? prev.tags.filter(t => t !== tag)
+        : [...prev.tags, tag],
+    }));
   };
 
   const toggleProductColor = (color: string) => {
@@ -843,7 +871,11 @@ export function AdminDashboard() {
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shopName: shopSettings.shopName }),
+        body: JSON.stringify({
+          shopName: shopSettings.shopName,
+          logoUrl: shopSettings.logoUrl,
+          faviconUrl: shopSettings.faviconUrl,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -1519,7 +1551,7 @@ export function AdminDashboard() {
                 </div>
                 <button onClick={handleSettingsSave} disabled={settingsSaving} className={btnPrimary}>
                   {settingsSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  Save Shop Name
+                  Save Settings
                 </button>
               </div>
             </div>
@@ -1945,6 +1977,44 @@ export function AdminDashboard() {
                   <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><FileText size={16} /> Ingredients</h4>
                   <textarea value={productForm.ingredients} onChange={(e) => setProductForm({ ...productForm, ingredients: e.target.value })} placeholder={`Enter ingredients, one per line:\nWater\nGlycerin\nDimethicone\nNiacinamide\n...`} rows={6} className={inputClass + ' resize-none font-mono text-sm'} />
                   <p className="text-xs text-[#8b6f63]/50">Enter one ingredient per line. These will be displayed on the product detail page.</p>
+                </div>
+
+                {/* Product Tags */}
+                <div className="bg-[#fef5f1] rounded-lg p-4 space-y-3">
+                  <h4 className="text-sm font-medium text-[#8b6f63] flex items-center gap-2"><Tag size={16} /> Product Tags</h4>
+                  <p className="text-xs text-[#8b6f63]/50">Click to toggle product tags. Selected tags are displayed on the product detail page.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {PRODUCT_TAGS.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleProductTag(tag)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                          productForm.tags.includes(tag)
+                            ? 'bg-[#d4a5a5] text-white border-[#d4a5a5] shadow-sm'
+                            : 'bg-white text-[#8b6f63] border-[#f5e6e0] hover:border-[#d4a5a5] hover:text-[#d4a5a5]'
+                        }`}
+                      >
+                        {productForm.tags.includes(tag) && <Check size={10} className="inline mr-1" />}
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                  {productForm.tags.length > 0 && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-xs text-[#8b6f63]/60">Selected ({productForm.tags.length}):</span>
+                      <div className="flex flex-wrap gap-1">
+                        {productForm.tags.map((tag) => (
+                          <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#d4a5a5]/15 text-[#8b6f63] rounded-full text-xs">
+                            {tag}
+                            <button type="button" onClick={() => toggleProductTag(tag)} className="text-[#8b6f63]/40 hover:text-red-500">
+                              <X size={10} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Colors */}

@@ -35,6 +35,8 @@ interface Product {
   savings?: number;
   saleName?: string | null;
   onSale?: boolean;
+  ingredients?: string | null;
+  tags?: string | null;
 }
 
 interface Review {
@@ -45,7 +47,7 @@ interface Review {
   user: { name: string };
 }
 
-const INGREDIENTS = [
+const DEFAULT_INGREDIENTS = [
   { name: 'Water (Aqua)', purpose: 'Solvent' },
   { name: 'Glycerin', purpose: 'Humectant' },
   { name: 'Hyaluronic Acid', purpose: 'Moisturizing Agent' },
@@ -63,7 +65,7 @@ const INGREDIENTS = [
   { name: 'Mica', purpose: 'Mineral Pigment' },
 ];
 
-const KEY_INGREDIENTS = [
+const DEFAULT_KEY_INGREDIENTS = [
   { name: 'Hyaluronic Acid', benefit: 'Deeply hydrates and plumps skin, holding up to 1,000x its weight in water', goodFor: 'All skin types, especially dry & mature skin', popularity: 5, color: '#e8b4d8' },
   { name: 'Niacinamide (Vitamin B3)', benefit: 'Brightens skin, minimizes pores, and evens out skin tone', goodFor: 'Combination, oily, and acne-prone skin', popularity: 5, color: '#f5c5a3' },
   { name: 'Vitamin E (Tocopherol)', benefit: 'Powerful antioxidant that protects skin from free radical damage', goodFor: 'All skin types, especially dry & sensitive', popularity: 4, color: '#d4a5a5' },
@@ -83,6 +85,34 @@ const SHADE_TIPS = [
   { tip: 'Apply with a lip brush for precise, even coverage.', icon: '🖌️' },
   { tip: 'Layer over lip balm for a subtle, tinted finish.', icon: '✨' },
   { tip: 'Swatch on your wrist to compare shades in natural light.', icon: '☀️' },
+];
+
+interface Ingredient {
+  name: string;
+  purpose: string;
+}
+
+interface KeyIngredient {
+  name: string;
+  benefit: string;
+  goodFor: string;
+  popularity: number;
+  color: string;
+}
+
+interface ProductTag {
+  label: string;
+  icon: typeof Rabbit;
+  iconColor: string;
+  show: (category: string) => boolean;
+}
+
+const PRODUCT_TAGS: ProductTag[] = [
+  { label: 'Cruelty-Free', icon: Rabbit, iconColor: 'text-[#d4a5a5]', show: () => true },
+  { label: 'Vegan', icon: Leaf, iconColor: 'text-green-500', show: () => true },
+  { label: 'Clean Beauty', icon: Sparkles, iconColor: 'text-amber-500', show: () => true },
+  { label: '12M After Opening', icon: Clock, iconColor: 'text-[#8b6f63]/60', show: (cat) => cat.toLowerCase() !== 'haircare' },
+  { label: '12g / 0.42 oz', icon: Package, iconColor: 'text-[#8b6f63]/60', show: () => true },
 ];
 
 const TABS = ['Description', 'Ingredients', 'Reviews', 'Shipping'] as const;
@@ -156,6 +186,34 @@ export function ProductDetailPage() {
   const hasMultipleImages = galleryImages.length > 1;
 
   const isWishlisted = product ? wishlistItems.includes(product.id) : false;
+
+  // Dynamic ingredients from DB, falling back to defaults
+  const dynamicIngredients = useMemo((): Ingredient[] => {
+    if (!product?.ingredients || product.ingredients.trim() === '') {
+      return DEFAULT_INGREDIENTS;
+    }
+    const lines = product.ingredients.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) return DEFAULT_INGREDIENTS;
+    return lines.map((line) => ({ name: line, purpose: '' }));
+  }, [product?.ingredients]);
+
+  const dynamicKeyIngredients = useMemo((): KeyIngredient[] => {
+    // If DB ingredients exist, find matches from DEFAULT_KEY_INGREDIENTS
+    if (product?.ingredients && product.ingredients.trim() !== '') {
+      const ingredientNames = product.ingredients.split('\n').map((l) => l.trim().toLowerCase());
+      const matched = DEFAULT_KEY_INGREDIENTS.filter((ki) =>
+        ingredientNames.some((name) => name.includes(ki.name.split(' (')[0].toLowerCase()))
+      );
+      if (matched.length > 0) return matched;
+    }
+    return DEFAULT_KEY_INGREDIENTS;
+  }, [product?.ingredients]);
+
+  // Configurable product tags based on category
+  const productTags = useMemo(() => {
+    const category = product?.category || '';
+    return PRODUCT_TAGS.filter((tag) => tag.show(category));
+  }, [product?.category]);
 
   const fetchReviews = useCallback(async (pid: string) => {
     try {
@@ -653,26 +711,15 @@ export function ProductDetailPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
-              <Rabbit size={14} className="text-[#d4a5a5]" />
-              Cruelty-Free
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
-              <Leaf size={14} className="text-green-500" />
-              Vegan
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
-              <Sparkles size={14} className="text-amber-500" />
-              Clean Beauty
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
-              <Clock size={14} className="text-[#8b6f63]/60" />
-              12M After Opening
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
-              <Package size={14} className="text-[#8b6f63]/60" />
-              12g / 0.42 oz
-            </span>
+            {productTags.map((tag) => {
+              const TagIcon = tag.icon;
+              return (
+                <span key={tag.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fef5f1] dark:bg-[#2d1f24] rounded-full text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5] border border-[#f5e6e0]/50 dark:border-[#3d2f34]">
+                  <TagIcon size={14} className={tag.iconColor} />
+                  {tag.label}
+                </span>
+              );
+            })}
           </motion.div>
 
           {/* Quantity Selector */}
@@ -985,7 +1032,7 @@ export function ProductDetailPage() {
                 </div>
                 <button
                   onClick={() => {
-                    const fullList = INGREDIENTS.map(i => i.name).join(', ');
+                    const fullList = dynamicIngredients.map(i => i.name).join(', ');
                     navigator.clipboard.writeText(fullList).then(() => {
                       toast('Ingredients copied to clipboard!');
                     }).catch(() => {
@@ -1008,7 +1055,7 @@ export function ProductDetailPage() {
                   <div className="flex items-center gap-2">
                     <Sparkles size={16} className="text-[#d4a5a5]" />
                     <span className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5]">Key Ingredients</span>
-                    <span className="text-xs text-[#8b6f63]/40 ml-1">({KEY_INGREDIENTS.length})</span>
+                    <span className="text-xs text-[#8b6f63]/40 ml-1">({dynamicKeyIngredients.length})</span>
                   </div>
                   <motion.div
                     animate={{ rotate: ingredientAccordion === 'key' ? 180 : 0 }}
@@ -1027,7 +1074,7 @@ export function ProductDetailPage() {
                       className="overflow-hidden"
                     >
                       <div className="px-5 pb-5 flex flex-wrap gap-2.5">
-                        {KEY_INGREDIENTS.map((ki) => (
+                        {dynamicKeyIngredients.map((ki) => (
                           <Popover key={ki.name} open={activeTooltip === ki.name} onOpenChange={(open) => setActiveTooltip(open ? ki.name : null)}>
                             <PopoverTrigger asChild>
                               <button
@@ -1084,7 +1131,7 @@ export function ProductDetailPage() {
                   <div className="flex items-center gap-2">
                     <Package size={16} className="text-[#8b6f63]/50" />
                     <span className="text-sm font-medium text-[#8b6f63] dark:text-[#e8ddd5]">Full Ingredients List</span>
-                    <span className="text-xs text-[#8b6f63]/40 ml-1">({INGREDIENTS.length})</span>
+                    <span className="text-xs text-[#8b6f63]/40 ml-1">({dynamicIngredients.length})</span>
                   </div>
                   <motion.div
                     animate={{ rotate: ingredientAccordion === 'full' ? 180 : 0 }}
@@ -1109,13 +1156,13 @@ export function ProductDetailPage() {
                           <div className="px-3 py-3 hidden sm:block" />
                         </div>
                         <div className="max-h-80 overflow-y-auto">
-                          {INGREDIENTS.map((item, index) => {
-                            const isKey = KEY_INGREDIENTS.some(ki => item.name.includes(ki.name.split(' (')[0]));
+                          {dynamicIngredients.map((item, index) => {
+                            const isKey = dynamicKeyIngredients.some(ki => item.name.includes(ki.name.split(' (')[0]));
                             return (
                               <div
                                 key={item.name}
                                 className={`grid grid-cols-[1fr_1fr_40px] sm:grid-cols-[1fr_1fr_60px] items-center ${
-                                  index < INGREDIENTS.length - 1 ? 'border-b border-[#f5e6e0]/30 dark:border-[#3d2f34]/50' : ''
+                                  index < dynamicIngredients.length - 1 ? 'border-b border-[#f5e6e0]/30 dark:border-[#3d2f34]/50' : ''
                                 } ${isKey ? 'bg-[#fef5f1]/30 dark:bg-[#d4a5a5]/5' : ''}`}
                               >
                                 <div className="px-5 py-3 text-sm text-[#8b6f63] dark:text-[#e8ddd5] flex items-center gap-2">

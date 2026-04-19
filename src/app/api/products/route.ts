@@ -5,8 +5,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
-    const sort = searchParams.get('sort') || 'featured';
+    const sort = searchParams.get('sort') || searchParams.get('sortBy') || 'featured';
     const search = searchParams.get('search') || '';
+    const limit = searchParams.get('limit');
 
     let products = await db.product.findMany({
       orderBy: { createdAt: 'asc' },
@@ -91,7 +92,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json(enrichedProducts);
+    return NextResponse.json(limit ? enrichedProducts.slice(0, parseInt(limit, 10)) : enrichedProducts);
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });

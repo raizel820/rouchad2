@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
 export async function GET() {
@@ -64,7 +64,9 @@ export async function POST(request: Request) {
 
     const ext = file.name.split('.').pop() || 'png';
     const filename = `${type}-${Date.now()}.${ext}`;
-    const filepath = path.join(process.cwd(), 'public', 'uploads', filename);
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    await mkdir(uploadDir, { recursive: true });
+    const filepath = path.join(uploadDir, filename);
 
     await writeFile(filepath, buffer);
     const url = `/uploads/${filename}`;

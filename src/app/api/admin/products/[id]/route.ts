@@ -19,6 +19,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (data.rating !== undefined) updateData.rating = parseFloat(data.rating);
     if (data.reviewCount !== undefined) updateData.reviewCount = parseInt(data.reviewCount);
     if (data.sales !== undefined) updateData.sales = parseInt(data.sales);
+    if (data.images !== undefined) updateData.images = data.images || null;
+    if (data.discountPercentage !== undefined) updateData.discountPercentage = parseFloat(data.discountPercentage);
 
     const product = await db.product.update({ where: { id }, data: updateData });
     return NextResponse.json(product);

@@ -13,7 +13,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { name, price, category, image, description, ingredients, colors, badge, stock } = await request.json();
+    const { name, price, category, image, images, description, ingredients, colors, badge, stock, discountPercentage } = await request.json();
     if (!name || price === undefined || !category) {
       return NextResponse.json({ error: 'Name, price, and category are required' }, { status: 400 });
     }
@@ -24,11 +24,13 @@ export async function POST(request: Request) {
         price: parseFloat(price),
         category,
         image: image || `/products/default.png`,
+        images: images || null,
         description: description || '',
         ingredients: ingredients || null,
         colors: colors || null,
         badge: badge || null,
         stock: parseInt(stock) || 50,
+        discountPercentage: discountPercentage ? parseFloat(discountPercentage) : 0,
       },
     });
     return NextResponse.json(product, { status: 201 });
