@@ -180,7 +180,7 @@ const PRESET_COLORS = [
 ];
 
 export function AdminDashboard() {
-  const { user, navigate } = useStore();
+  const { user, navigate, setShopSettings: setStoreShopSettings } = useStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'customers' | 'sales' | 'promo-codes' | 'settings'>('overview');
   const [loading, setLoading] = useState(true);
 
@@ -880,6 +880,8 @@ export function AdminDashboard() {
       if (res.ok) {
         const data = await res.json();
         setShopSettings(data);
+        // Sync to Zustand store so user-facing pages update immediately
+        setStoreShopSettings({ shopName: data.shopName, logoUrl: data.logoUrl, faviconUrl: data.faviconUrl });
         toast('Settings saved');
       } else {
         toast('Failed to save settings', 'error');
@@ -901,7 +903,10 @@ export function AdminDashboard() {
       const res = await fetch('/api/admin/settings', { method: 'POST', body: formData });
       if (res.ok) {
         const data = await res.json();
-        if (data.settings) setShopSettings(data.settings);
+        if (data.settings) {
+          setShopSettings(data.settings);
+          setStoreShopSettings({ shopName: data.settings.shopName, logoUrl: data.settings.logoUrl, faviconUrl: data.settings.faviconUrl });
+        }
         toast('Logo uploaded');
       } else {
         toast('Failed to upload logo', 'error');
@@ -924,7 +929,10 @@ export function AdminDashboard() {
       const res = await fetch('/api/admin/settings', { method: 'POST', body: formData });
       if (res.ok) {
         const data = await res.json();
-        if (data.settings) setShopSettings(data.settings);
+        if (data.settings) {
+          setShopSettings(data.settings);
+          setStoreShopSettings({ shopName: data.settings.shopName, logoUrl: data.settings.logoUrl, faviconUrl: data.settings.faviconUrl });
+        }
         toast('Favicon uploaded');
       } else {
         toast('Failed to upload favicon', 'error');
@@ -2038,7 +2046,7 @@ export function AdminDashboard() {
                   <div className="flex items-center gap-2 pt-1">
                     <input
                       type="text"
-                      value=""
+                      defaultValue=""
                       placeholder="#FF0000"
                       className="w-24 px-2 py-1.5 text-xs bg-white border border-[#f5e6e0] rounded text-[#8b6f63] focus:outline-none focus:ring-1 focus:ring-[#d4a5a5]"
                       onKeyDown={(e) => {

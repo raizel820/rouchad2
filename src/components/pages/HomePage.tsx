@@ -226,7 +226,7 @@ function CountdownTimer({ endDate }: { endDate: string }) {
 }
 
 export function HomePage() {
-  const { navigate, setSelectedCategory, user, isAuthenticated, recentlyViewed, wishlistItems } = useStore();
+  const { navigate, setSelectedCategory, user, isAuthenticated, recentlyViewed, wishlistItems, shopSettings } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [salesData, setSalesData] = useState<SaleData[]>([]);
@@ -556,7 +556,7 @@ export function HomePage() {
       {/* Featured Products */}
       <section className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-1">Glow Naturally with Rare Beauty</h2>
+          <h2 className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-1">Glow Naturally with {shopSettings.shopName}</h2>
           <p className="text-sm text-[#d4a5a5] font-medium mb-3">Best Sellers · Customer Favorites</p>
           {/* Animated decorative divider */}
           <motion.div

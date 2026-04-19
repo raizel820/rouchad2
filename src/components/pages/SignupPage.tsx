@@ -100,7 +100,7 @@ function FloatingInput({
 const steps = ['Account', 'Profile', 'Done'];
 
 export function SignupPage() {
-  const { login, navigate } = useStore();
+  const { login, navigate, shopSettings } = useStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -234,7 +234,7 @@ export function SignupPage() {
               className="text-3xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] inline-block mb-2 hover:text-[#d4a5a5] dark:hover:text-[#d4a5a5] transition-colors"
               whileHover={{ scale: 1.02 }}
             >
-              Rare Beauty
+              {shopSettings.shopName}
             </motion.button>
             <motion.h1
               className="text-2xl text-[#8b6f63] dark:text-[#e8ddd5] mb-2 font-serif"
@@ -317,7 +317,7 @@ export function SignupPage() {
                   transition={{ delay: 0.4 }}
                   className="text-xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] mb-2"
                 >
-                  Welcome to Rare Beauty!
+                  Welcome to {shopSettings.shopName}!
                 </motion.h3>
                 <motion.p
                   initial={{ opacity: 0, y: 10 }}

@@ -128,3 +128,29 @@ Stage Summary:
 - **APIs**: All routes return 200 (upload, products, sales/active, settings, seed-sales)
 - **Active Sales**: 3 sales active with 13 products on sale
 - **Upload**: Working — returns URL in `/uploads/` path
+
+---
+Task ID: Session-6-bugfix
+Agent: Main
+Task: Fix 3 reported bugs - tags showing when none selected, store name not changing, React value/onChange warning
+
+Work Log:
+- Investigated tags issue: `PRODUCT_TAGS` in ProductDetailPage.tsx was hardcoded with 5 tags always showing, disconnected from admin's tag selection (stored in badge field as JSON)
+- Replaced hardcoded `PRODUCT_TAGS` with `TAG_ICON_MAP` (15-tag icon/color mapping) + dynamic parser that reads `badge` field from DB
+- Tags now only show when admin has explicitly selected them in product edit dialog
+- Wrapped tag display section in conditional `{productTags.length > 0 && ...}` to hide when no tags selected
+
+- Investigated store name issue: "Rare Beauty" was hardcoded in Header, Footer, LoginPage, SignupPage, ContactPage, HomePage, ProductDetailPage - despite having full ShopSettings API + Zustand store + admin UI
+- Created `ShopSettingsLoader` component in page.tsx that fetches `/api/admin/settings` on app startup using a ref guard (runs once)
+- Updated Header, Footer, LoginPage, SignupPage, ContactPage, HomePage, ProductDetailPage to read from `shopSettings.shopName` via Zustand store
+- Added Zustand store sync in AdminDashboard: when admin saves settings, uploads logo, or uploads favicon, the Zustand store is updated so user-facing pages reflect changes immediately without refresh
+
+- Fixed React warning: changed `value=""` to `defaultValue=""` on hex color input in AdminDashboard.tsx line 2039
+
+Stage Summary:
+- Tags are now data-driven: only admin-selected tags appear on product detail page
+- Store name is fully dynamic: loads from DB on startup, admin changes propagate immediately to all user-facing pages
+- React warning resolved
+- Lint: 0 errors, 2 pre-existing warnings (unchanged)
+- Files modified: AdminDashboard.tsx, ProductDetailPage.tsx, Header.tsx, Footer.tsx, page.tsx, LoginPage.tsx, SignupPage.tsx, ContactPage.tsx, HomePage.tsx
+

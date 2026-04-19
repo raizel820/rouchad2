@@ -14,6 +14,7 @@ const faqQuickLinks = [
 ];
 
 export function ContactPage() {
+  const { shopSettings } = useStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState({
@@ -127,7 +128,7 @@ export function ContactPage() {
                 </div>
               </div>
               <div className="mt-2 px-3 py-1 bg-white dark:bg-[#2d1f24] rounded-full shadow-md text-xs font-medium text-[#8b6f63] dark:text-[#e8ddd5]">
-                Rare Beauty HQ
+                {shopSettings.shopName} HQ
               </div>
             </div>
             {/* Secondary pin */}

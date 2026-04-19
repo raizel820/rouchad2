@@ -105,7 +105,7 @@ export function Header() {
   const {
     navigate, getCartCount, isAuthenticated, currentPage, user,
     setSelectedCategory, wishlistItems, navigateToProfile, setProductId,
-    logout, setSearchQuery,
+    logout, setSearchQuery, shopSettings,
   } = useStore();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -674,7 +674,7 @@ export function Header() {
 
             {/* Logo */}
             <button onClick={() => navigate('home')} className="text-2xl font-serif text-[#8b6f63] dark:text-[#e8ddd5] hover:text-[#d4a5a5] transition-colors">
-              Rare Beauty
+              {shopSettings.shopName}
             </button>
 
             {/* Search (desktop) */}

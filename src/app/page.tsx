@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useStore } from '@/store/store';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -57,6 +57,32 @@ function QuickViewWrapper() {
       onClose={closeQuickView}
     />
   );
+}
+
+// Global effect to load shop settings on startup
+function ShopSettingsLoader() {
+  const { setShopSettings } = useStore();
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    let cancelled = false;
+    fetch('/api/admin/settings')
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled || !data || data.error) return;
+        setShopSettings({
+          shopName: data.shopName || 'Rare Beauty',
+          logoUrl: data.logoUrl || null,
+          faviconUrl: data.faviconUrl || null,
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [setShopSettings]);
+
+  return null;
 }
 
 function PageRenderer() {
@@ -150,6 +176,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <ShopSettingsLoader />
       <WishlistLoader />
       <ScrollToTop />
       {!hideChrome && <Header />}

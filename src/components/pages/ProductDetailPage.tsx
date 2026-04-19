@@ -104,16 +104,30 @@ interface ProductTag {
   label: string;
   icon: typeof Rabbit;
   iconColor: string;
-  show: (category: string) => boolean;
 }
 
-const PRODUCT_TAGS: ProductTag[] = [
-  { label: 'Cruelty-Free', icon: Rabbit, iconColor: 'text-[#d4a5a5]', show: () => true },
-  { label: 'Vegan', icon: Leaf, iconColor: 'text-green-500', show: () => true },
-  { label: 'Clean Beauty', icon: Sparkles, iconColor: 'text-amber-500', show: () => true },
-  { label: '12M After Opening', icon: Clock, iconColor: 'text-[#8b6f63]/60', show: (cat) => cat.toLowerCase() !== 'haircare' },
-  { label: '12g / 0.42 oz', icon: Package, iconColor: 'text-[#8b6f63]/60', show: () => true },
-];
+// Tag icon mapping - icons for known tags, default to Sparkles
+const TAG_ICON_MAP: Record<string, { icon: typeof Rabbit; iconColor: string }> = {
+  'Cruelty-Free': { icon: Rabbit, iconColor: 'text-[#d4a5a5]' },
+  'Vegan': { icon: Leaf, iconColor: 'text-green-500' },
+  'Clean Beauty': { icon: Sparkles, iconColor: 'text-amber-500' },
+  '12M After Opening': { icon: Clock, iconColor: 'text-[#8b6f63]/60' },
+  'Organic': { icon: Leaf, iconColor: 'text-emerald-500' },
+  'Natural': { icon: Leaf, iconColor: 'text-lime-500' },
+  'Paraben-Free': { icon: Shield, iconColor: 'text-blue-500' },
+  'Sulfate-Free': { icon: Droplets, iconColor: 'text-sky-500' },
+  'Gluten-Free': { icon: Sparkles, iconColor: 'text-yellow-500' },
+  'Dermatologist Tested': { icon: Shield, iconColor: 'text-teal-500' },
+  'Fragrance-Free': { icon: Droplets, iconColor: 'text-gray-500' },
+  'Oil-Free': { icon: Droplets, iconColor: 'text-cyan-500' },
+  'Non-Comedogenic': { icon: Shield, iconColor: 'text-violet-500' },
+  'Recyclable Packaging': { icon: Package, iconColor: 'text-green-600' },
+};
+
+const DEFAULT_TAG_STYLE: { icon: typeof Sparkles; iconColor: string } = {
+  icon: Sparkles,
+  iconColor: 'text-[#8b6f63]/60',
+};
 
 const TABS = ['Description', 'Ingredients', 'Reviews', 'Shipping'] as const;
 type TabKey = (typeof TABS)[number];
@@ -122,7 +136,7 @@ export function ProductDetailPage() {
   const {
     productId, navigate, addToCart, isAuthenticated, user,
     toggleWishlist, wishlistItems, setWishlistItems, addRecentlyViewed,
-    compareProductIds, addToCompare, removeFromCompare,
+    compareProductIds, addToCompare, removeFromCompare, shopSettings,
   } = useStore();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -209,11 +223,28 @@ export function ProductDetailPage() {
     return DEFAULT_KEY_INGREDIENTS;
   }, [product?.ingredients]);
 
-  // Configurable product tags based on category
+  // Parse tags from product badge field (stored as JSON array by admin)
   const productTags = useMemo(() => {
-    const category = product?.category || '';
-    return PRODUCT_TAGS.filter((tag) => tag.show(category));
-  }, [product?.category]);
+    if (!product?.badge) return [];
+    try {
+      if (product.badge.startsWith('[')) {
+        const parsed = JSON.parse(product.badge);
+        if (Array.isArray(parsed)) {
+          return parsed.map((label: string) => {
+            const mapped = TAG_ICON_MAP[label];
+            return {
+              label,
+              icon: mapped?.icon || DEFAULT_TAG_STYLE.icon,
+              iconColor: mapped?.iconColor || DEFAULT_TAG_STYLE.iconColor,
+            };
+          });
+        }
+      }
+    } catch {
+      // If parsing fails, badge is plain text (not a tag array)
+    }
+    return [];
+  }, [product?.badge]);
 
   const fetchReviews = useCallback(async (pid: string) => {
     try {
@@ -704,7 +735,8 @@ export function ProductDetailPage() {
           {/* Description Preview */}
           <p className="text-[#8b6f63]/70 mb-6 leading-relaxed">{product.description}</p>
 
-          {/* Product Info Badges */}
+          {/* Product Info Badges - only show if admin has selected tags */}
+          {productTags.length > 0 && (
           <motion.div
             className="flex flex-wrap gap-2.5 mb-6"
             initial={{ opacity: 0, y: 10 }}
@@ -721,6 +753,7 @@ export function ProductDetailPage() {
               );
             })}
           </motion.div>
+          )}
 
           {/* Quantity Selector */}
           <div className="flex items-center gap-5 mb-6">
@@ -842,7 +875,7 @@ export function ProductDetailPage() {
               onClick={async () => {
                 const shareData = {
                   title: product.name,
-                  text: `Check out ${product.name} on Rare Beauty!`,
+                  text: `Check out ${product.name} on ${shopSettings.shopName}!`,
                   url: window.location.href,
                 };
                 if (navigator.share) {
@@ -898,7 +931,7 @@ export function ProductDetailPage() {
             </button>
             <button
               onClick={() => {
-                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${product.name} on Rare Beauty!`)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${product.name} on ${shopSettings.shopName}!`)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
                 toast('Opening Twitter share', 'info');
               }}
               className="w-8 h-8 rounded-full bg-[#fef5f1] dark:bg-[#2d1f24] flex items-center justify-center text-[#8b6f63]/60 dark:text-[#e8ddd5] hover:bg-[#1da1f2] hover:text-white transition-all border border-[#f5e6e0]/30 dark:border-[#3d2f34]"

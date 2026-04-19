@@ -7,7 +7,7 @@ import { toast } from '@/lib/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Footer() {
-  const { navigate, setSelectedCategory } = useStore();
+  const { navigate, setSelectedCategory, shopSettings } = useStore();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -156,7 +156,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <h3 className="text-xl font-serif text-[#8b6f63] dark:text-[#e8ddd5]">
-                Rare Beauty
+                {shopSettings.shopName}
               </h3>
               <span className="w-1.5 h-1.5 rounded-full bg-[#d4a5a5]" aria-hidden="true" />
             </div>
@@ -274,7 +274,7 @@ export function Footer() {
 
           {/* Copyright */}
           <p className="text-center text-xs text-[#8b6f63]/50 dark:text-[#a89898]/50">
-            &copy; {new Date().getFullYear()} Rare Beauty. All rights reserved.{' '}
+            &copy; {new Date().getFullYear()} {shopSettings.shopName}. All rights reserved.{' '}
             <span className="inline-flex align-middle mx-0.5" aria-hidden="true">
               <Heart size={10} className="text-[#d4a5a5]/50 dark:text-[#d4a5a5]/40" />
             </span>{' '}
